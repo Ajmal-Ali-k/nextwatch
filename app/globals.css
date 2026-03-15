@@ -24,3 +24,12 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+.scroll-linked-list {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scroll-linked-list::-webkit-scrollbar {
+  display: none;
+}
