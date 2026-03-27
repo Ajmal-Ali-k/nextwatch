@@ -49,3 +49,19 @@ body {
     width: calc((100% - 4 * 1.25rem) / 4.5);
   }
 }
+
+.landscape-card {
+  width: calc((100% - 1 * 1.25rem) / 1.15);
+}
+
+@media (min-width: 640px) {
+  .landscape-card {
+    width: calc((100% - 2 * 1.25rem) / 2.1);
+  }
+}
+
+@media (min-width: 1024px) {
+  .landscape-card {
+    width: calc((100% - 4 * 1.25rem) / 4.4);
+  }
+}
