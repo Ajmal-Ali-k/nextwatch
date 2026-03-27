@@ -10,6 +10,7 @@ import {
   useMotionValueEvent,
   useScroll,
 } from "motion/react"
+import Link from "next/link"
 
 const left = "0%"
 const right = "100%"
@@ -84,23 +85,22 @@ export default function MoviesRow({
 
       <div className="relative z-10 px-4 sm:px-6">
         {/* Header: title + filters + View All */}
-        <div className="mb-5 flex flex-wrap items-center gap-4">
-          <h2 className="font-(family-name:--font-anton) text-2xl sm:text-3xl lg:text-4xl uppercase leading-tight tracking-tight text-white">
+        <div className="mb-5 flex flex-wrap items-center gap-10">
+          <h2 className="font-(family-name:--font-anton) text-2xl sm:text-3xl lg:text-4xl xl:text-5xl uppercase leading-tight tracking-tight text-white">
             {title}
           </h2>
 
           {filters && filters.length > 0 && (
-            <div className="flex items-center gap-2">
+            <div className="inline-flex items-center overflow-hidden rounded-full border border-[#E50914]/60 bg-black/20 p-1">
               {filters.map((filter) => (
                 <button
                   key={filter}
                   type="button"
                   onClick={() => setActiveFilter(filter)}
-                  className={`rounded-full border px-5 py-1.5 text-sm font-medium transition ${
-                    activeFilter === filter
-                      ? "border-[#E50914] bg-[#E50914] text-white"
-                      : "border-white/25 text-white/70 hover:border-white/50 hover:text-white"
-                  }`}
+                  className={`min-w-[110px] rounded-full px-6 py-2 text-sm font-medium transition ${activeFilter === filter
+                      ? "bg-[#E50914] text-white"
+                      : "text-white/75 hover:text-white"
+                    }`}
                 >
                   {filter}
                 </button>
@@ -122,42 +122,42 @@ export default function MoviesRow({
         </div>
 
         {/* Cards */}
-        <motion.div
-          ref={scrollRef}
-          className="scroll-linked-list flex min-w-0 gap-3 sm:gap-5 overflow-x-scroll pb-4"
-          style={{ maskImage }}
-        >
-          {movies.map((movie) => (
-            <article
-              key={movie.title}
-              className={`group flex shrink-0 flex-col ${
-                landscape ? "landscape-card" : "movie-card"
-              }`}
-            >
-              <div
-                className={`relative mb-3 overflow-hidden shadow-none transition group-hover:shadow-[0_0_30px_rgba(214,33,42,0.6)] ${
-                  landscape
-                    ? "aspect-video rounded-lg border border-white/10"
-                    : "aspect-2/3 rounded-sm"
-                }`}
+        <Link href="/detailpage">
+          <motion.div
+            ref={scrollRef}
+            className="scroll-linked-list flex min-w-0 gap-3 sm:gap-5 overflow-x-scroll pb-4"
+            style={{ maskImage }}
+          >
+            {movies.map((movie) => (
+              <article
+                key={movie.title}
+                className={`group flex shrink-0 flex-col ${landscape ? "landscape-card" : "movie-card"
+                  }`}
               >
-                <Image
-                  src={movie.image}
-                  alt={movie.title}
-                  width={landscape ? 400 : 300}
-                  height={landscape ? 225 : 450}
-                  className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-                />
-              </div>
-              <h3 className="font-(family-name:--font-anton) text-base sm:text-lg leading-snug text-white line-clamp-2">
-                {movie.title}
-              </h3>
-              <p className="mt-1 text-xs sm:text-sm text-white/60">
-                {movie.date}
-              </p>
-            </article>
-          ))}
-        </motion.div>
+                <div
+                  className={`relative mb-3 overflow-hidden shadow-none transition group-hover:shadow-[0_0_30px_rgba(214,33,42,0.6)] ${landscape
+                      ? "aspect-video rounded-lg border border-white/10"
+                      : "aspect-2/3 rounded-sm"
+                    }`}
+                >
+                  <Image
+                    src={movie.image}
+                    alt={movie.title}
+                    width={landscape ? 400 : 300}
+                    height={landscape ? 225 : 450}
+                    className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                  />
+                </div>
+                <h3 className="font-(family-name:--font-anton) text-base sm:text-lg leading-snug text-white line-clamp-2">
+                  {movie.title}
+                </h3>
+                <p className="mt-1 text-xs sm:text-sm text-white/60">
+                  {movie.date}
+                </p>
+              </article>
+            ))}
+          </motion.div>
+        </Link>
       </div>
     </section>
   )

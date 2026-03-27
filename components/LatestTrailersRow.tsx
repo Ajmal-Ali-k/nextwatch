@@ -78,21 +78,21 @@ export default function LatestTrailersRow({
 
       <div className="relative z-10 px-4 py-7 sm:px-6">
         {/* header */}
-        <div className="mb-5 flex flex-wrap items-center gap-4">
-          <h2 className="font-(family-name:--font-anton) text-2xl sm:text-3xl lg:text-4xl uppercase leading-tight tracking-tight text-white">
+        <div className="mb-5 flex flex-wrap items-center gap-10">
+          <h2 className="font-(family-name:--font-anton) text-2xl sm:text-3xl lg:text-4xl xl:text-5xl uppercase leading-tight tracking-tight text-white">
             {title}
           </h2>
 
-          <div className="flex items-center gap-2 rounded-full border border-white/15 bg-black/20 p-1 backdrop-blur-sm">
+          <div className="inline-flex items-center overflow-hidden rounded-full border border-[#E50914]/60 bg-black/20 p-1">
             {filters.map((filter) => (
               <button
                 key={filter}
                 type="button"
                 onClick={() => setActiveFilter(filter)}
-                className={`rounded-full px-5 py-1.5 text-sm font-medium transition ${
+                className={`min-w-[110px] rounded-full px-6 py-2 text-sm font-medium transition ${
                   activeFilter === filter
-                    ? "bg-[#E50914] text-white shadow-[0_8px_22px_rgba(229,9,20,0.35)]"
-                    : "text-white/70 hover:text-white"
+                    ? "bg-[#E50914] text-white"
+                    : "text-white/75 hover:text-white"
                 }`}
               >
                 {filter}
@@ -107,9 +107,9 @@ export default function LatestTrailersRow({
           className="scroll-linked-list flex min-w-0 gap-5 overflow-x-scroll pb-4"
           style={{ maskImage }}
         >
-          {trailers.map((trailer) => (
+          {trailers.map((trailer, index) => (
             <article
-              key={trailer.title}
+              key={`${trailer.title}-${index}`}
               className="group flex shrink-0 flex-col landscape-card"
             >
               <div className="relative mb-3 aspect-video overflow-hidden rounded-xl border border-white/10 transition group-hover:shadow-[0_0_30px_rgba(214,33,42,0.6)]">

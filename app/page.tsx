@@ -3,8 +3,10 @@ import movieHer from "@/assets/movies/her.png"
 import movieEternalSunshine from "@/assets/movies/eternal_sunshine.png"
 import movieOnceUponATime from "@/assets/movies/onece_uponeatime_hollywood.png"
 import movieTenet from "@/assets/movies/tenet.png"
+import mainBanner from "@/assets/movies/main_banner.png"
 import MoviesRow from "@/components/MoviesRow"
 import LatestTrailersRow from "@/components/LatestTrailersRow"
+import HeroBannerSwiper from "@/components/HeroBannerSwiper"
 
 const experienceInTheatres = [
   { title: "1917", date: "Jan 17, 2020", image: movie1917 },
@@ -20,6 +22,11 @@ const experienceInTheatres = [
     image: movieOnceUponATime,
   },
   { title: "Tenet", date: "Jan 17, 2020", image: movieTenet },
+  {
+    title: "Eternal Sunshine of the Spotless Mind",
+    date: "Jan 17, 2020",
+    image: movieEternalSunshine,
+  },
 ];
 
 const newMoviesOnOtt = [
@@ -36,6 +43,11 @@ const newMoviesOnOtt = [
     image: movieOnceUponATime,
   },
   { title: "Tenet", date: "Jan 17, 2020", image: movieTenet },
+  {
+    title: "Eternal Sunshine of the Spotless Mind",
+    date: "Jan 17, 2020",
+    image: movieEternalSunshine,
+  },
 ];
 
 const latestTrailers = [
@@ -44,13 +56,22 @@ const latestTrailers = [
   { title: "1917", date: "Jan 17, 2020", image: movie1917 },
   { title: "Her", date: "Jan 17, 2020", image: movieHer },
   { title: "Tenet", date: "Jan 17, 2020", image: movieTenet },
+  { title: "Peaky Blinders", date: "Jan 17, 2020", image: movieTenet },
+  { title: "Peaky Blinders", date: "Jan 17, 2020", image: movieTenet },
 ];
 
 export default function Home() {
   return (
-    <main className="min-h-screen pb-16 pt-12 text-white">
-      <div className="mx-auto flex container flex-col gap-16">
+    <main className="min-h-screen pb-16  text-white">
+      <HeroBannerSwiper
+        slides={[
+          { image: mainBanner, alt: "Main banner" },
+          { image: mainBanner, alt: "Main banner" },
+          { image: mainBanner, alt: "Main banner" },
+        ]}
+      />
 
+      <div className="mx-auto flex container flex-col gap-16 pt-12">
         <LatestTrailersRow trailers={latestTrailers} />
         <MoviesRow
           title="New Releases in Cinemas"
@@ -62,8 +83,17 @@ export default function Home() {
           movies={newMoviesOnOtt}
           filters={["Today", "This Week", "This Month"]}
         />
-        <MoviesRow title="LATEST TV SHOWS" movies={newMoviesOnOtt} />
-        <MoviesRow title="THIS MONTH RELEASES" movies={newMoviesOnOtt} />
+        <MoviesRow
+          title="Latest TV Shows on OTT"
+          movies={newMoviesOnOtt}
+          filters={["Today", "This Week", "This Month"]}
+        />
+        <MoviesRow
+          title="LATEST anime"
+          movies={newMoviesOnOtt}
+          filters={["Today", "This Week", "This Month"]}
+        />
+
       </div>
     </main>
   );
