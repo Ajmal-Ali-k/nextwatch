@@ -11,7 +11,7 @@ const navLinks = [
 export default function Footer() {
   return (
     <footer className="w-full bg-[#D6212A] border-t border-[#D6212A]/50 mt-12">
-      <div className="mx-auto flex h-14 max-w-[1600px] items-center justify-between gap-6 px-4 sm:px-6">
+      <div className="mx-auto flex max-w-[1600px] flex-col items-center gap-4 px-4 py-4 sm:flex-row sm:h-14 sm:gap-6 sm:py-0 sm:px-6">
         <Link
           href="/"
           className="shrink-0 font-bold tracking-tight text-white text-lg sm:text-xl"
@@ -19,7 +19,7 @@ export default function Footer() {
           NextWatchList
         </Link>
 
-        <div className="hidden items-center gap-6 md:flex">
+        <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 md:flex-1">
           {navLinks.map(({ href, label }) => (
             <Link
               key={href}

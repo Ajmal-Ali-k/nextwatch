@@ -18,7 +18,7 @@ import { BookmarkIcon } from "lucide-react";
 export default function Navbar() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-[#D6212A]/50 bg-[#D6212A]">
-      <nav className="mx-auto flex h-14 max-w-[1600px] items-center justify-between gap-6 px-4 sm:px-6">
+      <nav className="mx-auto flex h-14 max-w-[1600px] items-center justify-between gap-3 sm:gap-6 px-4 sm:px-6">
         {/* Logo */}
         <Link
           href="/"
@@ -41,7 +41,7 @@ export default function Navbar() {
         </div>
 
         {/* Search - shadcn Input with icon */}
-        <div className="relative flex-1 max-w-md">
+        <div className="relative hidden sm:block flex-1 max-w-md">
           <SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-white/80" />
           <Input
             type="search"
@@ -54,8 +54,15 @@ export default function Navbar() {
           />
         </div>
 
-        {/* Utility links */}
-        <div className="flex shrink-0 items-center gap-4">
+        <button
+          type="button"
+          className="sm:hidden text-white/95 transition-colors hover:text-white"
+          aria-label="Search"
+        >
+          <SearchIcon className="size-5" />
+        </button>
+
+        <div className="flex shrink-0 items-center gap-3 sm:gap-4">
           <button
             type="button"
             className="flex items-center gap-1.5 text-sm font-medium text-white/95 transition-colors hover:text-white"
