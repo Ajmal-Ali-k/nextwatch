@@ -23,7 +23,7 @@ const experienceInTheatres = [
   },
   { title: "Tenet", date: "Jan 17, 2020", image: movieTenet },
   {
-    title: "Eternal Sunshine of the Spotless Mind",
+    title: "Eternal Sunshine of the Spotles Mind",
     date: "Jan 17, 2020",
     image: movieEternalSunshine,
   },
@@ -44,7 +44,7 @@ const newMoviesOnOtt = [
   },
   { title: "Tenet", date: "Jan 17, 2020", image: movieTenet },
   {
-    title: "Eternal Sunshine of the Spotless Mind",
+    title: "Eternal Sunshine of the Spotles Mind",
     date: "Jan 17, 2020",
     image: movieEternalSunshine,
   },
@@ -57,7 +57,7 @@ const latestTrailers = [
   { title: "Her", date: "Jan 17, 2020", image: movieHer },
   { title: "Tenet", date: "Jan 17, 2020", image: movieTenet },
   { title: "Peaky Blinders", date: "Jan 17, 2020", image: movieTenet },
-  { title: "Peaky Blinders", date: "Jan 17, 2020", image: movieTenet },
+  { title: "Peaky Blinders ", date: "Jan 17, 2020", image: movieTenet },
 ];
 
 export default function Home() {
