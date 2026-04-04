@@ -17,6 +17,12 @@ const TMDB_PAGE_SIZE = 20;
 /** TMDB returns 20 per request; we merge so each response returns this many movies */
 const RESULTS_PER_VIEW = 24;
 
+/**
+ * TMDB `language` for discover text fields. Use English so titles match common poster
+ * artwork; UI `language` still drives `with_original_language` via {@link originalLanguageForDiscover}.
+ */
+const DISCOVER_RESPONSE_LANGUAGE = "en-US";
+
 const MAX_BROWSABLE_ITEMS = TMDB_MAX_PAGE * TMDB_PAGE_SIZE;
 const MAX_DISPLAY_PAGE = Math.ceil(MAX_BROWSABLE_ITEMS / RESULTS_PER_VIEW);
 
@@ -33,7 +39,7 @@ function toNormalized(m: TmdbDiscoverMovieResult): NormalizedDiscoverMovie {
 function buildDiscoverUrl(
   apiKey: string,
   watchRegion: string,
-  language: string,
+  tmdbLanguage: string,
   providerId: string | undefined,
   tmdbPage: number,
   withOriginalLanguage: string | undefined,
@@ -43,7 +49,7 @@ function buildDiscoverUrl(
   const url = new URL(`${TMDB_API_V3_BASE}/discover/movie`);
   url.searchParams.set("api_key", apiKey);
   url.searchParams.set("watch_region", watchRegion);
-  url.searchParams.set("language", language);
+  url.searchParams.set("language", tmdbLanguage);
   url.searchParams.set("sort_by", sortBy);
   url.searchParams.set("include_adult", "false");
   url.searchParams.set("page", String(tmdbPage));
@@ -131,7 +137,7 @@ export async function GET(request: Request) {
     const url = buildDiscoverUrl(
       apiKey,
       watchRegionRaw,
-      language,
+      DISCOVER_RESPONSE_LANGUAGE,
       providerId,
       tmdbPage,
       withOriginalLanguage,

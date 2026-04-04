@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { Film, Search as SearchIcon } from "lucide-react";
 import {
@@ -29,10 +30,6 @@ type SearchJson = {
   }[];
   error?: string;
 };
-
-function tmdbMovieUrl(id: number): string {
-  return `https://www.themoviedb.org/movie/${id}`;
-}
 
 function releaseYear(iso: string): string {
   if (!iso) return "";
@@ -104,10 +101,8 @@ function SearchResultsBody({
         const year = releaseYear(m.releaseDate);
         return (
           <li key={m.id} role="presentation">
-            <a
-              href={tmdbMovieUrl(m.id)}
-              target="_blank"
-              rel="noopener noreferrer"
+            <Link
+              href={`/movies/${m.id}`}
               role="option"
               aria-selected={false}
               className="flex items-center gap-3 px-3 py-2 text-left text-sm text-white/90 transition hover:bg-white/10"
@@ -140,7 +135,7 @@ function SearchResultsBody({
                   <span className="text-xs text-white/50">{year}</span>
                 ) : null}
               </span>
-            </a>
+            </Link>
           </li>
         );
       })}

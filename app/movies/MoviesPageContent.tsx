@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
@@ -581,7 +582,12 @@ export default function MoviesPageContent() {
           ) : (
             <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
               {movies.map((m) => (
-                <article key={m.id} className="group">
+                <Link
+                  key={m.id}
+                  href={`/movies/${m.id}`}
+                  className="group block rounded-xl text-inherit no-underline outline-offset-2 focus-visible:ring-2 focus-visible:ring-white/40"
+                >
+                  <article className="flex flex-col">
                   <div className="relative aspect-2/3 overflow-hidden rounded-xl border border-white/10 bg-white/5">
                     <MoviePoster
                       title={m.title}
@@ -662,7 +668,8 @@ export default function MoviesPageContent() {
                     {m.title}
                   </h3>
                   <p className="mt-1 text-xs text-white/60">{formatReleaseDate(m.releaseDate)}</p>
-                </article>
+                  </article>
+                </Link>
               ))}
             </div>
           )}

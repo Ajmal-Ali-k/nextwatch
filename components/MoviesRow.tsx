@@ -1,7 +1,7 @@
 "use client"
 
 import Image, { type StaticImageData } from "next/image"
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import {
   animate,
   motion,
@@ -50,6 +50,7 @@ function useScrollOverflowMask(scrollXProgress: MotionValue<number>) {
 }
 
 export type Movie = {
+  id?: number
   title: string
   date: string
   image: string | StaticImageData
@@ -57,6 +58,7 @@ export type Movie = {
 
 export default function MoviesRow({
   title,
+  heading,
   movies,
   glow = false,
   filters,
@@ -64,6 +66,8 @@ export default function MoviesRow({
   showViewAll = true,
 }: {
   title: string
+  /** When set, replaces the default uppercase title row (same visual weight as `title`). */
+  heading?: ReactNode
   movies: Movie[]
   glow?: boolean
   filters?: string[]
@@ -134,7 +138,7 @@ export default function MoviesRow({
         {/* Header: title + filters + View All */}
         <div className="mb-5 flex flex-wrap items-center gap-10">
           <h2 className="font-(family-name:--font-anton) text-2xl sm:text-3xl lg:text-4xl xl:text-5xl uppercase leading-tight tracking-tight text-white">
-            {title}
+            {heading ?? title}
           </h2>
 
           {filters && filters.length > 0 && (
@@ -206,19 +210,19 @@ export default function MoviesRow({
             <span className="block text-lg leading-none">›</span>
           </motion.button>
 
-          <Link href="/detailpage">
-            <motion.div
-              ref={scrollRef}
-              onScroll={updateScrollButtons}
-              className="scroll-linked-list flex min-w-0 gap-3 sm:gap-5 overflow-x-scroll pb-4"
-              style={{ maskImage }}
-            >
-              {movies.map((movie) => (
-                <article
-                  key={movie.title}
-                  className={`group flex shrink-0 flex-col ${landscape ? "landscape-card" : "movie-card"
-                    }`}
-                >
+          <motion.div
+            ref={scrollRef}
+            onScroll={updateScrollButtons}
+            className="scroll-linked-list flex min-w-0 gap-3 sm:gap-5 overflow-x-scroll pb-4"
+            style={{ maskImage }}
+          >
+            {movies.map((movie, index) => {
+              const key =
+                movie.id != null ? `movie-${movie.id}` : `${movie.title}-${index}`
+              const cardClass = `group flex shrink-0 flex-col ${landscape ? "landscape-card" : "movie-card"
+                }`
+              const inner = (
+                <>
                   <div
                     className={`relative mb-3 overflow-hidden shadow-none transition group-hover:shadow-[0_0_30px_rgba(214,33,42,0.6)] ${landscape
                         ? "aspect-video rounded-lg border border-white/10"
@@ -239,10 +243,26 @@ export default function MoviesRow({
                   <p className="mt-1 text-xs sm:text-sm text-white/60">
                     {movie.date}
                   </p>
+                </>
+              )
+              if (movie.id != null) {
+                return (
+                  <Link
+                    key={key}
+                    href={`/movies/${movie.id}`}
+                    className={`${cardClass} text-inherit no-underline outline-offset-2 focus-visible:ring-2 focus-visible:ring-white/40`}
+                  >
+                    {inner}
+                  </Link>
+                )
+              }
+              return (
+                <article key={key} className={cardClass}>
+                  {inner}
                 </article>
-              ))}
-            </motion.div>
-          </Link>
+              )
+            })}
+          </motion.div>
         </div>
       </div>
     </section>
