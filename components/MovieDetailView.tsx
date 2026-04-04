@@ -125,7 +125,7 @@ export default function MovieDetailView({ data }: { data: MovieDetailPageData })
                   </button>
                 </div>
 
-                <MovieDetailWatchProviders movieId={data.id} />
+                <MovieDetailWatchProviders movieId={data.id} mediaTitle={data.title} />
               </div>
             </div>
 

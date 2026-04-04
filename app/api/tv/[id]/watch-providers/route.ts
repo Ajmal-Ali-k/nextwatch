@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { TMDB_API_V3_BASE, providerLogoUrl } from "@/lib/tmdb/constants";
+import { withWatchUrls, type WatchProviderMonetization } from "@/lib/tmdb/watchProviderOutboundLinks";
 
 const ALLOWED_REGIONS = new Set(["IN", "US", "GB"]);
 
@@ -47,6 +48,7 @@ export async function GET(
 
   const { searchParams } = new URL(request.url);
   const watchRegion = (searchParams.get("watchRegion") ?? "IN").toUpperCase();
+  const mediaTitle = searchParams.get("title")?.trim() ?? "";
   if (!ALLOWED_REGIONS.has(watchRegion)) {
     return NextResponse.json({ error: "Invalid watchRegion" }, { status: 400 });
   }
@@ -70,17 +72,21 @@ export async function GET(
     return NextResponse.json({ providers: [] });
   }
 
-  type Monetization = "Stream" | "Rent" | "Buy";
+  const tmdbWatchPageUrl =
+    typeof regionBlock.link === "string" && regionBlock.link.trim()
+      ? regionBlock.link.trim()
+      : null;
+
   const rows: {
     providerId: number;
     name: string;
     logoUrl: string | null;
-    label: Monetization;
+    label: WatchProviderMonetization;
   }[] = [];
 
   const push = (
     list: TmdbProviderRow[] | undefined,
-    label: Monetization
+    label: WatchProviderMonetization
   ) => {
     for (const p of list ?? []) {
       const name = String(p.provider_name ?? "").trim();
@@ -99,11 +105,13 @@ export async function GET(
   push(regionBlock.buy, "Buy");
 
   const seen = new Set<number>();
-  const providers = rows.filter((r) => {
+  const deduped = rows.filter((r) => {
     if (seen.has(r.providerId)) return false;
     seen.add(r.providerId);
     return true;
   });
+
+  const providers = withWatchUrls(deduped, watchRegion, mediaTitle, tmdbWatchPageUrl);
 
   return NextResponse.json({ providers });
 }

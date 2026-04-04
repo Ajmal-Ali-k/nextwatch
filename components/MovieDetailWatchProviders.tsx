@@ -11,9 +11,13 @@ type ProviderRow = {
   name: string;
   logoUrl: string | null;
   label: "Stream" | "Rent" | "Buy";
+  watchUrl: string | null;
 };
 
 type Json = { providers: ProviderRow[]; error?: string };
+
+const chipClassName =
+  "inline-flex max-w-[200px] items-center gap-2.5 rounded-xl border border-white/15 bg-white/5 px-3 py-2 backdrop-blur-sm transition hover:border-white/35 hover:bg-white/10";
 
 const SECTION_ORDER: ProviderRow["label"][] = ["Stream", "Rent", "Buy"];
 
@@ -24,8 +28,8 @@ const SECTION_HEADING: Record<ProviderRow["label"], string> = {
 };
 
 function ProviderChip({ platform }: { platform: ProviderRow }) {
-  return (
-    <div className="inline-flex max-w-[200px] items-center gap-2.5 rounded-xl border border-white/15 bg-white/5 px-3 py-2 backdrop-blur-sm">
+  const inner = (
+    <>
       <span className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-md bg-black/35">
         {platform.logoUrl ? (
           <Image
@@ -44,27 +48,48 @@ function ProviderChip({ platform }: { platform: ProviderRow }) {
       <span className="min-w-0 truncate text-sm font-medium leading-tight text-white/95">
         {platform.name}
       </span>
-    </div>
+    </>
   );
+
+  if (platform.watchUrl) {
+    return (
+      <a
+        href={platform.watchUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={`${chipClassName} cursor-pointer text-inherit no-underline outline-offset-2 focus-visible:ring-2 focus-visible:ring-white/40`}
+        aria-label={`Watch on ${platform.name} (opens in a new tab)`}
+      >
+        {inner}
+      </a>
+    );
+  }
+
+  return <div className={chipClassName}>{inner}</div>;
 }
 
 type MovieDetailWatchProvidersProps =
-  | { movieId: number; tvId?: never }
-  | { tvId: number; movieId?: never };
+  | { movieId: number; mediaTitle: string; tvId?: never }
+  | { tvId: number; mediaTitle: string; movieId?: never };
 
 export function MovieDetailWatchProviders(props: MovieDetailWatchProvidersProps) {
   const { watchRegion } = useRegionLanguage();
   const isTv = "tvId" in props;
   const mediaId = isTv ? props.tvId : props.movieId;
+  const mediaTitle = props.mediaTitle;
 
   const q = useQuery({
     queryKey: [
       isTv ? "tv-watch-providers-detail" : "movie-watch-providers",
       mediaId,
       watchRegion,
+      mediaTitle,
     ],
     queryFn: async ({ signal }) => {
-      const params = new URLSearchParams({ watchRegion });
+      const params = new URLSearchParams({
+        watchRegion,
+        title: mediaTitle,
+      });
       const path = isTv
         ? `/api/tv/${mediaId}/watch-providers`
         : `/api/movies/${mediaId}/watch-providers`;
