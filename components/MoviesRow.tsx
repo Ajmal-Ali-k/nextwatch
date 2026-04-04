@@ -64,6 +64,7 @@ export default function MoviesRow({
   filters,
   landscape = false,
   showViewAll = true,
+  linkBase = "movie",
 }: {
   title: string
   /** When set, replaces the default uppercase title row (same visual weight as `title`). */
@@ -73,6 +74,8 @@ export default function MoviesRow({
   filters?: string[]
   landscape?: boolean
   showViewAll?: boolean
+  /** Where detail links resolve (`/movies/[id]` vs `/tv-shows/[id]`). */
+  linkBase?: "movie" | "tv"
 }) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const { scrollXProgress } = useScroll({ container: scrollRef })
@@ -246,10 +249,12 @@ export default function MoviesRow({
                 </>
               )
               if (movie.id != null) {
+                const href =
+                  linkBase === "tv" ? `/tv-shows/${movie.id}` : `/movies/${movie.id}`;
                 return (
                   <Link
                     key={key}
-                    href={`/movies/${movie.id}`}
+                    href={href}
                     className={`${cardClass} text-inherit no-underline outline-offset-2 focus-visible:ring-2 focus-visible:ring-white/40`}
                   >
                     {inner}

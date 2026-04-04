@@ -48,17 +48,27 @@ function ProviderChip({ platform }: { platform: ProviderRow }) {
   );
 }
 
-export function MovieDetailWatchProviders({ movieId }: { movieId: number }) {
+type MovieDetailWatchProvidersProps =
+  | { movieId: number; tvId?: never }
+  | { tvId: number; movieId?: never };
+
+export function MovieDetailWatchProviders(props: MovieDetailWatchProvidersProps) {
   const { watchRegion } = useRegionLanguage();
+  const isTv = "tvId" in props;
+  const mediaId = isTv ? props.tvId : props.movieId;
 
   const q = useQuery({
-    queryKey: ["movie-watch-providers", movieId, watchRegion],
+    queryKey: [
+      isTv ? "tv-watch-providers-detail" : "movie-watch-providers",
+      mediaId,
+      watchRegion,
+    ],
     queryFn: async ({ signal }) => {
       const params = new URLSearchParams({ watchRegion });
-      const res = await fetch(
-        `/api/movies/${movieId}/watch-providers?${params.toString()}`,
-        { signal }
-      );
+      const path = isTv
+        ? `/api/tv/${mediaId}/watch-providers`
+        : `/api/movies/${mediaId}/watch-providers`;
+      const res = await fetch(`${path}?${params.toString()}`, { signal });
       const data = (await res.json()) as Json;
       if (!res.ok) throw new Error(data.error ?? "Failed to load providers");
       return data.providers ?? [];
