@@ -13,7 +13,6 @@ import {
 } from "react";
 
 import { Input } from "@/components/ui/input";
-import { useRegionLanguage } from "@/components/RegionLanguageProvider";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { cn } from "@/lib/utils";
 
@@ -24,6 +23,7 @@ type SearchJson = {
   results: {
     id: number;
     title: string;
+    originalTitle: string | null;
     releaseDate: string;
     posterUrl: string | null;
   }[];
@@ -131,6 +131,11 @@ function SearchResultsBody({
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate font-medium text-white">{m.title}</span>
+                {m.originalTitle ? (
+                  <span className="block truncate text-xs text-white/55" lang="und">
+                    {m.originalTitle}
+                  </span>
+                ) : null}
                 {year ? (
                   <span className="text-xs text-white/50">{year}</span>
                 ) : null}
@@ -144,7 +149,6 @@ function SearchResultsBody({
 }
 
 export default function NavbarSearch() {
-  const { language } = useRegionLanguage();
   const [searchText, setSearchText] = useState("");
   const debouncedQuery = useDebouncedValue(searchText, DEBOUNCE_MS);
   const [panelOpen, setPanelOpen] = useState(false);
@@ -161,11 +165,10 @@ export default function NavbarSearch() {
   const enabled = debouncedQuery.trim().length >= 2;
 
   const query = useQuery({
-    queryKey: ["movie-search", language, debouncedQuery.trim()],
+    queryKey: ["movie-search", debouncedQuery.trim()],
     queryFn: async ({ signal }) => {
       const params = new URLSearchParams({
         query: debouncedQuery.trim(),
-        language,
       });
       const res = await fetch(`/api/movies/search?${params.toString()}`, { signal });
       const data = (await res.json()) as SearchJson;

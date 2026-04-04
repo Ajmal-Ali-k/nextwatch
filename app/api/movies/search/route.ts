@@ -3,7 +3,8 @@ import { NextResponse } from "next/server";
 import { checkMovieSearchRateLimit, getClientIp } from "@/lib/server/movieSearchRateLimit";
 import { TMDB_API_V3_BASE, posterThumbnailUrl } from "@/lib/tmdb/constants";
 
-const LANGUAGE_PATTERN = /^[a-z]{2}(-[A-Z]{2})?$/;
+/** TMDB localized `title` for search results — English so typing Latin script matches dropdown labels. */
+const TMDB_SEARCH_LANGUAGE = "en-US";
 
 const MIN_QUERY_LEN = 2;
 const MAX_QUERY_LEN = 100;
@@ -12,6 +13,7 @@ const MAX_RESULTS = 10;
 type TmdbSearchMovieResult = {
   id?: number;
   title?: string;
+  original_title?: string;
   release_date?: string;
   poster_path?: string | null;
 };
@@ -23,6 +25,8 @@ type TmdbSearchMovieResponse = {
 export type MovieSearchResultItem = {
   id: number;
   title: string;
+  /** Native/local title when different from `title` (e.g. Malayalam script). */
+  originalTitle: string | null;
   releaseDate: string;
   posterUrl: string | null;
 };
@@ -62,15 +66,10 @@ export async function GET(request: Request) {
     return NextResponse.json({ results: [] satisfies MovieSearchResultItem[] });
   }
 
-  let language = searchParams.get("language") ?? "en-US";
-  if (!LANGUAGE_PATTERN.test(language)) {
-    language = "en-US";
-  }
-
   const url = new URL(`${TMDB_API_V3_BASE}/search/movie`);
   url.searchParams.set("api_key", apiKey);
   url.searchParams.set("query", query);
-  url.searchParams.set("language", language);
+  url.searchParams.set("language", TMDB_SEARCH_LANGUAGE);
   url.searchParams.set("page", "1");
   url.searchParams.set("include_adult", "false");
 
@@ -94,9 +93,14 @@ export async function GET(request: Request) {
     if (typeof id !== "number" || !Number.isInteger(id) || id < 1) continue;
     const title = typeof m.title === "string" ? m.title.trim() : "";
     if (!title) continue;
+    const originalRaw =
+      typeof m.original_title === "string" ? m.original_title.trim() : "";
+    const originalTitle =
+      originalRaw.length > 0 && originalRaw !== title ? originalRaw : null;
     results.push({
       id,
       title,
+      originalTitle,
       releaseDate: typeof m.release_date === "string" ? m.release_date : "",
       posterUrl: posterThumbnailUrl(m.poster_path ?? null),
     });
