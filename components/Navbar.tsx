@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { BookmarkIcon, ChevronDown, GlobeIcon, SearchIcon } from "lucide-react";
+import { BookmarkIcon, ChevronDown, GlobeIcon } from "lucide-react";
 
-import { Input } from "@/components/ui/input";
 import { LocaleMenuPopover } from "@/components/LocaleMenu";
+import NavbarSearch from "@/components/NavbarSearch";
 import { languageLabelFor, useRegionLanguage } from "@/components/RegionLanguageProvider";
 import { cn } from "@/lib/utils";
 
@@ -58,27 +58,7 @@ export default function Navbar() {
           ))}
         </div>
 
-        {/* Search - shadcn Input with icon */}
-        <div className="relative hidden sm:block flex-1 max-w-md">
-          <SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-white/80" />
-          <Input
-            type="search"
-            placeholder="Search by name, genre, etc"
-            className={cn(
-              "h-9 border-white/30 bg-red-500/50 pl-9 text-white placeholder:text-white/70",
-              "focus-visible:ring-white/50 focus-visible:border-white/50"
-            )}
-            aria-label="Search by name, genre, etc"
-          />
-        </div>
-
-        <button
-          type="button"
-          className="sm:hidden text-white/95 transition-colors hover:text-white"
-          aria-label="Search"
-        >
-          <SearchIcon className="size-5" />
-        </button>
+        <NavbarSearch />
 
         <div className="flex shrink-0 items-center gap-3 sm:gap-4">
           <div className="relative" ref={localeRef}>
