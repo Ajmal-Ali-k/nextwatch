@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Inter_Tight, Anton } from "next/font/google";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/footer";
+import { QueryProvider } from "@/components/QueryProvider";
+import { RegionLanguageProvider } from "@/components/RegionLanguageProvider";
 import "./globals.css";
 
 const interTight = Inter_Tight({
@@ -23,13 +25,17 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning={true}>
       <body
         className={`${interTight.variable} ${anton.variable} antialiased bg-neutral-900 text-white`}
       >
-        <Navbar />
-        {children}
-        <Footer />
+        <RegionLanguageProvider>
+          <QueryProvider>
+            <Navbar />
+            {children}
+            <Footer />
+          </QueryProvider>
+        </RegionLanguageProvider>
       </body>
     </html>
   );
