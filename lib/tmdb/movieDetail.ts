@@ -8,10 +8,11 @@ const DEFAULT_LANGUAGE = "en-US";
  */
 const INCLUDE_VIDEO_LANGUAGE = "en,null,ml,hi,ta,te,kn,mr";
 
+/** Full-resolution backdrop; TMDB fixed sizes top out at w1280, so `original` avoids upscaled blur on large viewports. */
 function backdropHeroUrl(path: string | null): string | null {
   const p = typeof path === "string" ? path.trim() : "";
   if (!p) return null;
-  return `${TMDB_IMAGE_BASE}/w1280${p}`;
+  return `${TMDB_IMAGE_BASE}/original${p}`;
 }
 
 function backdropGalleryUrl(path: string | null): string | null {
@@ -235,7 +236,7 @@ export async function loadMovieDetail(
   const poster = posterUrl(data.poster_path ?? null);
   let backdrop = backdropHeroUrl(data.backdrop_path ?? null);
   if (!backdrop && poster) {
-    backdrop = poster.replace("/w500", "/w1280");
+    backdrop = poster.replace("/w500", "/original");
   }
 
   return {

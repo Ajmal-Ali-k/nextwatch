@@ -31,6 +31,7 @@ export default function MovieDetailView({ data }: { data: MovieDetailPageData })
               fill
               className="object-cover object-center"
               priority
+              quality={90}
               sizes="100vw"
             />
           ) : (

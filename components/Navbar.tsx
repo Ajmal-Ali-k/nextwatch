@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 const navLinks = [
   { href: "/in-theaters", label: "In Theaters" },
   { href: "/movies", label: "Movies" },
-  { href: "/tv_shows", label: "TV Shows" },
+  { href: "/tv-shows", label: "TV Shows" },
   { href: "/calendar", label: "Calendar" },
 ];
 
