@@ -1,4 +1,9 @@
 import { TMDB_API_V3_BASE, TMDB_IMAGE_BASE, posterUrl } from "@/lib/tmdb/constants";
+import {
+  buildCastCreditList,
+  buildCrewCreditList,
+  type DetailCreditPerson,
+} from "@/lib/tmdb/detailCredits";
 
 const DEFAULT_LANGUAGE = "en-US";
 
@@ -25,6 +30,14 @@ type TmdbVideo = {
 
 type TmdbCastMember = {
   name?: string;
+  character?: string;
+  profile_path?: string | null;
+};
+
+type TmdbCrewMember = {
+  name?: string;
+  job?: string;
+  profile_path?: string | null;
 };
 
 type TmdbGenre = {
@@ -52,7 +65,7 @@ type TmdbTvDetailAppended = {
   backdrop_path?: string | null;
   episode_run_time?: number[];
   genres?: TmdbGenre[];
-  credits?: { cast?: TmdbCastMember[] };
+  credits?: { cast?: TmdbCastMember[]; crew?: TmdbCrewMember[] };
   videos?: { results?: TmdbVideo[] };
   images?: { backdrops?: TmdbBackdrop[] };
   recommendations?: { results?: TmdbTvListResult[] };
@@ -161,7 +174,8 @@ export type TvDetailPageData = {
   posterUrl: string | null;
   backdropUrl: string | null;
   genres: string[];
-  castLine: string;
+  cast: DetailCreditPerson[];
+  crew: DetailCreditPerson[];
   trailerYoutubeKey: string | null;
   gallery: { src: string }[];
   recommended: TvDetailRecommended[];
@@ -207,12 +221,8 @@ export async function loadTvDetail(
     .map((g) => (typeof g.name === "string" ? g.name.trim() : ""))
     .filter(Boolean);
 
-  const castNames = (data.credits?.cast ?? [])
-    .map((c) => (typeof c.name === "string" ? c.name.trim() : ""))
-    .filter(Boolean)
-    .slice(0, 8);
-  const castLine =
-    castNames.length > 0 ? castNames.join(", ") : "—";
+  const cast = buildCastCreditList(data.credits?.cast, 18);
+  const crew = buildCrewCreditList(data.credits?.crew, 12);
 
   const trailerYoutubeKey = pickYoutubeTrailer(data.videos?.results);
 
@@ -250,7 +260,8 @@ export async function loadTvDetail(
     posterUrl: poster,
     backdropUrl: backdrop,
     genres,
-    castLine,
+    cast,
+    crew,
     trailerYoutubeKey,
     gallery,
     recommended,

@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Bookmark, Heart } from "lucide-react";
 
+import { DetailCreditsSection } from "@/components/DetailCreditsSection";
 import MoviesRow, { type Movie } from "@/components/MoviesRow";
 import { MovieGallery } from "@/components/MovieGallery";
 import { MovieDetailWatchProviders } from "@/components/MovieDetailWatchProviders";
@@ -94,10 +95,6 @@ export default function MovieDetailView({ data }: { data: MovieDetailPageData })
                   </div>
                 ) : null}
 
-                <p className="text-sm text-white/80">
-                  <span className="font-semibold text-white/90">Cast:</span> {data.castLine}
-                </p>
-
                 <p className="text-sm leading-relaxed text-white/75 sm:text-base">
                   {data.overview}
                 </p>
@@ -128,6 +125,8 @@ export default function MovieDetailView({ data }: { data: MovieDetailPageData })
                 <MovieDetailWatchProviders movieId={data.id} mediaTitle={data.title} />
               </div>
             </div>
+
+            <DetailCreditsSection cast={data.cast} crew={data.crew} />
 
             {data.gallery.length > 0 ? (
               <div className="mt-10">

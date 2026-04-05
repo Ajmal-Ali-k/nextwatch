@@ -85,6 +85,17 @@ export function isIndiaOnlyOttKey(key: OttPlatformKey): boolean {
 }
 
 /**
+ * Preset platform chips for the TV discover page. Apple TV+ is hidden for India because
+ * TMDB TV discover often returns no results for the mapped provider id in that region.
+ */
+export function majorOttPlatformKeysForTvPage(watchRegion: string): OttPlatformKey[] {
+  if (watchRegion.toUpperCase() === "IN") {
+    return MAJOR_OTT_PLATFORM_KEYS.filter((k) => k !== "apple");
+  }
+  return [...MAJOR_OTT_PLATFORM_KEYS];
+}
+
+/**
  * Drop Sony LIV / Zee5 from the regional provider catalog outside India so they do not appear as
  * major chips or under "More", and TMDB ids 237/232 cannot be selected for US/UK discover.
  */
@@ -120,6 +131,18 @@ export function majorProviderIdsForRegion(watchRegion: string): Set<number> {
       (id): id is number => typeof id === "number"
     )
   );
+}
+
+/**
+ * Pipe-separated `with_watch_providers` value for TMDB discover (OR semantics).
+ * Used when the user picks "All" platforms so results are limited to titles with at least one
+ * major streaming/rental option in the region — excluding theatrical-only listings.
+ */
+export function discoverAnyOttWatchProvidersParam(watchRegion: string): string {
+  const ids = [...majorProviderIdsForRegion(watchRegion.toUpperCase())].sort(
+    (a, b) => a - b
+  );
+  return ids.join("|");
 }
 
 export type WatchProviderPickRow = {

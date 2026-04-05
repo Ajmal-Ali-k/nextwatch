@@ -25,6 +25,7 @@ import {
   MAJOR_OTT_PLATFORM_KEYS,
   MAJOR_PLATFORM_FALLBACK_INITIALS,
   MAJOR_PLATFORM_FALLBACK_LABEL,
+  majorOttPlatformKeysForTvPage,
   majorProviderIdsExcludedFromMore,
   majorProviderIdsForRegion,
   resolveMajorProviderId,
@@ -101,6 +102,13 @@ export default function TvShowsPageContent() {
       if (need) queueMicrotask(() => replace({ parsedPlatform: plat, page: 1 }));
     }
   }, [watchRegion, searchParams, replace]);
+
+  useEffect(() => {
+    if (watchRegion.toUpperCase() !== "IN") return;
+    if (parsed.parsedPlatform.kind === "preset" && parsed.parsedPlatform.key === "apple") {
+      queueMicrotask(() => replace({ parsedPlatform: { kind: "all" }, page: 1 }));
+    }
+  }, [watchRegion, parsed.parsedPlatform, replace]);
 
   useEffect(() => {
     function handlePointerDown(event: MouseEvent) {
@@ -324,7 +332,7 @@ export default function TvShowsPageContent() {
               >
                 All
               </button>
-              {MAJOR_OTT_PLATFORM_KEYS.map((key) => {
+              {majorOttPlatformKeysForTvPage(watchRegion).map((key) => {
                 const providerIdForKey = resolveMajorProviderId(watchRegion, key, providersList);
                 if (providerIdForKey === undefined) return null;
                 const meta = providersById.get(providerIdForKey);

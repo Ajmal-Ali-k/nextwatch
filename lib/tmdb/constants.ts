@@ -19,3 +19,10 @@ export function providerLogoUrl(logoPath: string | null): string | null {
   if (!path) return null;
   return `${TMDB_IMAGE_BASE}/w92${path}`;
 }
+
+/** Small headshot for cast / crew on detail pages (keeps layout light). */
+export function profileThumbUrl(profilePath: string | null): string | null {
+  const path = typeof profilePath === "string" ? profilePath.trim() : "";
+  if (!path) return null;
+  return `${TMDB_IMAGE_BASE}/w92${path}`;
+}

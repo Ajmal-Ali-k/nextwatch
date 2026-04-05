@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
 
 import { TMDB_API_V3_BASE, posterUrl } from "@/lib/tmdb/constants";
-import { originalLanguageForDiscover } from "@/lib/tmdb/discoverFilters";
-import { discoverAnyOttWatchProvidersParam } from "@/lib/tmdb/platforms";
-import { parseDiscoverSort } from "@/lib/tmdb/discoverSort";
 import type {
   NormalizedDiscoverMovie,
   TmdbDiscoverMovieResult,
@@ -11,18 +8,14 @@ import type {
 } from "@/lib/tmdb/types";
 
 const ALLOWED_REGIONS = new Set(["IN", "US", "GB"]);
-const LANGUAGE_PATTERN = /^[a-z]{2}(-[A-Z]{2})?$/;
-/** TMDB discover allows TMDB page 1–500 */
+/** TMDB now_playing uses the same page cap as other movie lists. */
 const TMDB_MAX_PAGE = 500;
 const TMDB_PAGE_SIZE = 20;
-/** TMDB returns 20 per request; we merge so each response returns this many movies */
+/** Merge TMDB pages so each UI page shows this many movies (same as discover). */
 const RESULTS_PER_VIEW = 24;
 
-/**
- * TMDB `language` for discover text fields. Use English so titles match common poster
- * artwork; UI `language` still drives `with_original_language` via {@link originalLanguageForDiscover}.
- */
-const DISCOVER_RESPONSE_LANGUAGE = "en-US";
+/** English titles on cards; region still scopes theatrical releases. */
+const NOW_PLAYING_RESPONSE_LANGUAGE = "en-US";
 
 const MAX_BROWSABLE_ITEMS = TMDB_MAX_PAGE * TMDB_PAGE_SIZE;
 const MAX_DISPLAY_PAGE = Math.ceil(MAX_BROWSABLE_ITEMS / RESULTS_PER_VIEW);
@@ -37,34 +30,16 @@ function toNormalized(m: TmdbDiscoverMovieResult): NormalizedDiscoverMovie {
   };
 }
 
-function buildDiscoverUrl(
+function buildNowPlayingUrl(
   apiKey: string,
-  watchRegion: string,
-  tmdbLanguage: string,
-  /** Single provider id, or pipe-separated OR list from {@link discoverAnyOttWatchProvidersParam}. */
-  watchProvidersFilter: string | undefined,
-  tmdbPage: number,
-  withOriginalLanguage: string | undefined,
-  sortBy: string,
-  withGenres: string | undefined
+  region: string,
+  tmdbPage: number
 ): string {
-  const url = new URL(`${TMDB_API_V3_BASE}/discover/movie`);
+  const url = new URL(`${TMDB_API_V3_BASE}/movie/now_playing`);
   url.searchParams.set("api_key", apiKey);
-  url.searchParams.set("watch_region", watchRegion);
-  url.searchParams.set("language", tmdbLanguage);
-  url.searchParams.set("sort_by", sortBy);
-  url.searchParams.set("include_adult", "false");
+  url.searchParams.set("language", NOW_PLAYING_RESPONSE_LANGUAGE);
+  url.searchParams.set("region", region);
   url.searchParams.set("page", String(tmdbPage));
-  if (withOriginalLanguage) {
-    url.searchParams.set("with_original_language", withOriginalLanguage);
-  }
-  if (withGenres) {
-    url.searchParams.set("with_genres", withGenres);
-  }
-  if (watchProvidersFilter) {
-    url.searchParams.set("with_watch_providers", watchProvidersFilter);
-    url.searchParams.set("with_watch_monetization_types", "flatrate|rent|buy");
-  }
   return url.toString();
 }
 
@@ -79,8 +54,6 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const watchRegionRaw = (searchParams.get("watchRegion") ?? "IN").toUpperCase();
-  const language = searchParams.get("language") ?? "en-US";
-  const providerIdParam = searchParams.get("providerId");
   const pageRaw = searchParams.get("page");
   const pageParsed = pageRaw == null || pageRaw === "" ? 1 : Number(pageRaw);
   if (!Number.isInteger(pageParsed) || pageParsed < 1 || pageParsed > MAX_DISPLAY_PAGE) {
@@ -90,33 +63,6 @@ export async function GET(request: Request) {
 
   if (!ALLOWED_REGIONS.has(watchRegionRaw)) {
     return NextResponse.json({ error: "Invalid watchRegion" }, { status: 400 });
-  }
-  if (!LANGUAGE_PATTERN.test(language)) {
-    return NextResponse.json({ error: "Invalid language" }, { status: 400 });
-  }
-
-  const sortBy = parseDiscoverSort(searchParams.get("sortBy"));
-
-  let genreIdStr: string | undefined;
-  const genreIdParam = searchParams.get("genreId");
-  if (genreIdParam != null && genreIdParam !== "") {
-    const gid = Number(genreIdParam);
-    if (!Number.isInteger(gid) || gid < 1) {
-      return NextResponse.json({ error: "Invalid genreId" }, { status: 400 });
-    }
-    genreIdStr = String(gid);
-  }
-
-  let watchProvidersFilter: string | undefined;
-  if (providerIdParam != null && providerIdParam !== "") {
-    const n = Number(providerIdParam);
-    if (!Number.isInteger(n) || n < 1) {
-      return NextResponse.json({ error: "Invalid providerId" }, { status: 400 });
-    }
-    watchProvidersFilter = String(n);
-  } else {
-    /** "All" = any major OTT in region (excludes theatrical-only). */
-    watchProvidersFilter = discoverAnyOttWatchProvidersParam(watchRegionRaw);
   }
 
   const offset = (displayPage - 1) * RESULTS_PER_VIEW;
@@ -135,20 +81,10 @@ export async function GET(request: Request) {
   let totalResults = 0;
   let totalPages = 1;
 
-  const fetchOptions = { next: { revalidate: 3600 } as const };
-  const withOriginalLanguage = originalLanguageForDiscover(watchRegionRaw, language);
+  const fetchOptions = { next: { revalidate: 900 } as const };
 
   while (merged.length < RESULTS_PER_VIEW && tmdbPage <= TMDB_MAX_PAGE) {
-    const url = buildDiscoverUrl(
-      apiKey,
-      watchRegionRaw,
-      DISCOVER_RESPONSE_LANGUAGE,
-      watchProvidersFilter,
-      tmdbPage,
-      withOriginalLanguage,
-      sortBy,
-      genreIdStr
-    );
+    const url = buildNowPlayingUrl(apiKey, watchRegionRaw, tmdbPage);
     const res = await fetch(url, fetchOptions);
 
     if (!res.ok) {
@@ -161,7 +97,7 @@ export async function GET(request: Request) {
 
     const data = (await res.json()) as TmdbDiscoverResponse;
     if (totalResults === 0) {
-      totalResults = data.total_results;
+      totalResults = data.total_results ?? 0;
       const cappedItems = Math.min(totalResults, MAX_BROWSABLE_ITEMS);
       totalPages =
         totalResults === 0 ? 1 : Math.max(1, Math.ceil(cappedItems / RESULTS_PER_VIEW));
