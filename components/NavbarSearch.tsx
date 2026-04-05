@@ -1,9 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { Film, Search as SearchIcon } from "lucide-react";
+import { Film, Search as SearchIcon, Tv } from "lucide-react";
 import {
   useCallback,
   useEffect,
@@ -12,29 +11,39 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useRouter } from "next/navigation";
 
+import type { SearchMovieItem, SearchTvItem } from "@/app/api/search/route";
 import { Input } from "@/components/ui/input";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { cn } from "@/lib/utils";
 
 const DEBOUNCE_MS = 350;
 const STALE_TIME_MS = 3 * 60_000;
+const SUGGEST_PER_TYPE = 3;
 
-type SearchJson = {
-  results: {
-    id: number;
-    title: string;
-    originalTitle: string | null;
-    releaseDate: string;
-    posterUrl: string | null;
-  }[];
+type CombinedSearchJson = {
+  query: string;
+  movies: { results: SearchMovieItem[] };
+  tv: { results: SearchTvItem[] };
   error?: string;
 };
 
-function releaseYear(iso: string): string {
-  if (!iso) return "";
-  const y = iso.slice(0, 4);
-  return /^\d{4}$/.test(y) ? y : "";
+function highlightMatch(text: string, query: string): ReactNode {
+  const q = query.trim();
+  if (!q) return text;
+  const lower = text.toLowerCase();
+  const idx = lower.indexOf(q.toLowerCase());
+  if (idx === -1) {
+    return <strong className="font-semibold text-white">{text}</strong>;
+  }
+  return (
+    <>
+      <span className="text-white/90">{text.slice(0, idx)}</span>
+      <strong className="font-semibold text-white">{text.slice(idx, idx + q.length)}</strong>
+      <span className="text-white/90">{text.slice(idx + q.length)}</span>
+    </>
+  );
 }
 
 function SearchPanel({
@@ -44,35 +53,41 @@ function SearchPanel({
 }: {
   className?: string;
   listId: string;
-  children: ReactNode;
+  children: React.ReactNode;
 }) {
   return (
     <div
       className={cn(
-        "absolute left-0 right-0 top-full z-[80] mt-1 overflow-hidden rounded-lg border border-white/20 bg-neutral-950/98 shadow-xl shadow-black/40 ring-1 ring-black/30 backdrop-blur-md",
+        "absolute left-0 right-0 top-full z-80 mt-1 overflow-hidden rounded-lg border border-white/20 bg-neutral-950/98 shadow-xl shadow-black/40 ring-1 ring-black/30 backdrop-blur-md",
         className
       )}
       id={listId}
-      role="listbox"
-      aria-label="Movie search results"
+      role="region"
+      aria-label="Search suggestions"
     >
       {children}
     </div>
   );
 }
 
-function SearchResultsBody({
+function SuggestionRows({
   isFetching,
   isError,
   errorMessage,
-  results,
+  movies,
+  tv,
+  query,
   onPick,
+  seeAllHref,
 }: {
   isFetching: boolean;
   isError: boolean;
   errorMessage: string | null;
-  results: SearchJson["results"];
+  movies: SearchMovieItem[];
+  tv: SearchTvItem[];
+  query: string;
   onPick?: () => void;
+  seeAllHref: string;
 }) {
   if (isFetching) {
     return (
@@ -88,62 +103,62 @@ function SearchResultsBody({
       </p>
     );
   }
-  if (results.length === 0) {
-    return (
-      <p className="px-3 py-4 text-center text-sm text-white/55">
-        No movies found. Try another title.
-      </p>
-    );
-  }
+
+  const hasRows = movies.length > 0 || tv.length > 0;
+
   return (
-    <ul className="max-h-[min(55vh,20rem)] overflow-y-auto py-1">
-      {results.map((m) => {
-        const year = releaseYear(m.releaseDate);
-        return (
-          <li key={m.id} role="presentation">
-            <Link
-              href={`/movies/${m.id}`}
-              role="option"
-              aria-selected={false}
-              className="flex items-center gap-3 px-3 py-2 text-left text-sm text-white/90 transition hover:bg-white/10"
-              onClick={onPick}
-            >
-              <span className="flex size-11 shrink-0 overflow-hidden rounded-md bg-black/40">
-                {m.posterUrl ? (
-                  <Image
-                    src={m.posterUrl}
-                    alt=""
-                    width={45}
-                    height={68}
-                    className="size-full object-cover"
-                    sizes="45px"
-                  />
-                ) : (
-                  <span className="flex size-full items-center justify-center text-[10px] font-bold text-white/35">
-                    —
-                  </span>
-                )}
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate font-medium text-white">{m.title}</span>
-                {m.originalTitle ? (
-                  <span className="block truncate text-xs text-white/55" lang="und">
-                    {m.originalTitle}
-                  </span>
-                ) : null}
-                {year ? (
-                  <span className="text-xs text-white/50">{year}</span>
-                ) : null}
-              </span>
-            </Link>
-          </li>
-        );
-      })}
-    </ul>
+    <div className="max-h-[min(55vh,20rem)] overflow-y-auto">
+      {!hasRows ? (
+        <p className="px-3 py-3 text-center text-sm text-white/55">No quick matches.</p>
+      ) : (
+        <ul className="py-0">
+          {movies.map((m) => (
+            <li key={`m-${m.id}`} className="border-b border-white/10 last:border-b-0">
+              <Link
+                href={`/movies/${m.id}`}
+                className="flex items-center gap-3 px-3 py-2.5 text-left text-sm transition hover:bg-white/10"
+                onClick={onPick}
+              >
+                <Film className="size-5 shrink-0 text-white/70" aria-hidden />
+                <span>
+                  {highlightMatch(m.title, query)}{" "}
+                  <span className="font-normal text-white/55">in Movies</span>
+                </span>
+              </Link>
+            </li>
+          ))}
+          {tv.map((t) => (
+            <li key={`t-${t.id}`} className="border-b border-white/10 last:border-b-0">
+              <Link
+                href={`/tv-shows/${t.id}`}
+                className="flex items-center gap-3 px-3 py-2.5 text-left text-sm transition hover:bg-white/10"
+                onClick={onPick}
+              >
+                <Tv className="size-5 shrink-0 text-white/70" aria-hidden />
+                <span>
+                  {highlightMatch(t.title, query)}{" "}
+                  <span className="font-normal text-white/55">in TV Shows</span>
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="border-t border-white/10 px-3 py-2">
+        <Link
+          href={seeAllHref}
+          className="block text-center text-sm font-medium text-[#F5C518] transition hover:text-[#ffd54f]"
+          onClick={onPick}
+        >
+          See all results
+        </Link>
+      </div>
+    </div>
   );
 }
 
 export default function NavbarSearch() {
+  const router = useRouter();
   const [searchText, setSearchText] = useState("");
   const debouncedQuery = useDebouncedValue(searchText, DEBOUNCE_MS);
   const [panelOpen, setPanelOpen] = useState(false);
@@ -158,15 +173,17 @@ export default function NavbarSearch() {
   const mobileInputId = useId();
 
   const enabled = debouncedQuery.trim().length >= 2;
+  const seeAllHref = `/search?q=${encodeURIComponent(debouncedQuery.trim())}`;
 
   const query = useQuery({
-    queryKey: ["movie-search", debouncedQuery.trim()],
+    queryKey: ["navbar-combined-search", debouncedQuery.trim()],
     queryFn: async ({ signal }) => {
       const params = new URLSearchParams({
         query: debouncedQuery.trim(),
+        page: "1",
       });
-      const res = await fetch(`/api/movies/search?${params.toString()}`, { signal });
-      const data = (await res.json()) as SearchJson;
+      const res = await fetch(`/api/search?${params.toString()}`, { signal });
+      const data = (await res.json()) as CombinedSearchJson;
       if (res.status === 429) {
         throw new Error(
           data.error ?? "Too many searches. Please wait a moment and try again."
@@ -175,13 +192,15 @@ export default function NavbarSearch() {
       if (!res.ok) {
         throw new Error(data.error ?? "Search failed. Try again.");
       }
-      return data.results;
+      return data;
     },
     enabled,
     staleTime: STALE_TIME_MS,
   });
 
-  const results = query.data ?? [];
+  const movieSuggestions = (query.data?.movies.results ?? []).slice(0, SUGGEST_PER_TYPE);
+  const tvSuggestions = (query.data?.tv.results ?? []).slice(0, SUGGEST_PER_TYPE);
+
   const showPanelDesktop =
     panelOpen && enabled && (query.isFetching || query.isFetched || query.isError);
   const showPanelMobile =
@@ -213,6 +232,18 @@ export default function NavbarSearch() {
     };
   }, [mobileOpen]);
 
+  const closeAndGoSearch = useCallback(() => {
+    setPanelOpen(false);
+    setMobileOpen(false);
+  }, []);
+
+  const submitSearch = useCallback(() => {
+    const t = searchText.trim();
+    if (t.length < 2) return;
+    router.push(`/search?q=${encodeURIComponent(t)}`);
+    closeAndGoSearch();
+  }, [router, searchText, closeAndGoSearch]);
+
   const onInputEscape = useCallback((e: React.KeyboardEvent) => {
     if (e.key === "Escape") {
       setPanelOpen(false);
@@ -223,50 +254,69 @@ export default function NavbarSearch() {
   const errorMessage =
     query.error instanceof Error ? query.error.message : query.isError ? "Search failed." : null;
 
+  const inputClassDesktop = cn(
+    "h-9 w-full rounded-full border-white/30 bg-red-500/50 pl-10 pr-3 text-white placeholder:text-white/70",
+    "focus-visible:border-white/50 focus-visible:ring-white/50"
+  );
+
+  const inputClassMobile = cn(
+    "h-11 w-full rounded-full border-white/25 bg-white/10 pl-10 pr-3 text-white placeholder:text-white/60",
+    "focus-visible:ring-white/40"
+  );
+
   return (
     <>
-      {/* Desktop */}
       <div
         ref={rootRef}
         className="relative hidden max-w-md flex-1 sm:block"
         role="search"
       >
-        <label htmlFor={inputId} className="sr-only">
-          Search movies
-        </label>
-        <Film
-          className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-white/85"
-          aria-hidden
-        />
-        <Input
-          id={inputId}
-          type="search"
-          autoComplete="off"
-          placeholder="Search movies…"
-          value={searchText}
-          onChange={(e) => {
-            setSearchText(e.target.value);
-            setPanelOpen(true);
+        <form
+          className="relative"
+          onSubmit={(e) => {
+            e.preventDefault();
+            submitSearch();
           }}
-          onFocus={() => setPanelOpen(true)}
-          onKeyDown={onInputEscape}
-          role="combobox"
-          aria-expanded={showPanelDesktop}
-          aria-controls={listId}
-          aria-autocomplete="list"
-          aria-haspopup="listbox"
-          className={cn(
-            "h-9 border-white/30 bg-red-500/50 pl-10 text-white placeholder:text-white/70",
-            "focus-visible:ring-white/50 focus-visible:border-white/50"
-          )}
-        />
+        >
+          <label htmlFor={inputId} className="sr-only">
+            Search movies and TV
+          </label>
+          <SearchIcon
+            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-white/85"
+            aria-hidden
+          />
+          <Input
+            id={inputId}
+            type="search"
+            autoComplete="off"
+            placeholder="Search by name, genre, etc"
+            value={searchText}
+            onChange={(e) => {
+              setSearchText(e.target.value);
+              setPanelOpen(true);
+            }}
+            onFocus={() => setPanelOpen(true)}
+            onKeyDown={(e) => {
+              onInputEscape(e);
+            }}
+            role="combobox"
+            aria-expanded={showPanelDesktop}
+            aria-controls={listId}
+            aria-autocomplete="list"
+            aria-haspopup="dialog"
+            className={inputClassDesktop}
+          />
+        </form>
         {showPanelDesktop ? (
           <SearchPanel listId={listId}>
-            <SearchResultsBody
+            <SuggestionRows
               isFetching={query.isFetching}
               isError={query.isError}
               errorMessage={errorMessage}
-              results={results}
+              movies={movieSuggestions}
+              tv={tvSuggestions}
+              query={debouncedQuery.trim()}
+              seeAllHref={seeAllHref}
             />
             <p className="border-t border-white/10 px-3 py-2 text-[10px] leading-snug text-white/45">
               This product uses the TMDB API but is not endorsed or certified by TMDB.
@@ -275,24 +325,22 @@ export default function NavbarSearch() {
         ) : null}
       </div>
 
-      {/* Mobile trigger */}
       <button
         type="button"
         className="shrink-0 text-white/95 transition-colors hover:text-white sm:hidden"
-        aria-label="Open movie search"
+        aria-label="Open search"
         onClick={() => setMobileOpen(true)}
       >
         <SearchIcon className="size-5" />
       </button>
 
-      {/* Mobile full-screen search */}
       {mobileOpen ? (
         <div
-          className="fixed inset-0 z-[100] flex flex-col bg-neutral-950/98 p-4 pt-[max(1rem,env(safe-area-inset-top,0px))] sm:hidden"
+          className="fixed inset-0 z-100 flex flex-col bg-neutral-950/98 p-4 pt-[max(1rem,env(safe-area-inset-top,0px))] sm:hidden"
           ref={mobileRootRef}
           role="dialog"
           aria-modal="true"
-          aria-label="Search movies"
+          aria-label="Search movies and TV"
         >
           <div className="flex items-center gap-2 border-b border-white/15 pb-3">
             <button
@@ -303,11 +351,17 @@ export default function NavbarSearch() {
               Close
             </button>
           </div>
-          <label htmlFor={mobileInputId} className="sr-only">
-            Search movies
-          </label>
-          <div className="relative mt-3">
-            <Film
+          <form
+            className="relative mt-3"
+            onSubmit={(e) => {
+              e.preventDefault();
+              submitSearch();
+            }}
+          >
+            <label htmlFor={mobileInputId} className="sr-only">
+              Search movies and TV
+            </label>
+            <SearchIcon
               className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-white/85"
               aria-hidden
             />
@@ -316,33 +370,33 @@ export default function NavbarSearch() {
               id={mobileInputId}
               type="search"
               autoComplete="off"
-              placeholder="Search movies…"
+              placeholder="Search by name, genre, etc"
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
               role="combobox"
               aria-expanded={showPanelMobile}
               aria-controls={mobileListId}
               aria-autocomplete="list"
-              aria-haspopup="listbox"
-              className={cn(
-                "h-11 border-white/25 bg-white/10 pl-10 text-white placeholder:text-white/60",
-                "focus-visible:ring-white/40"
-              )}
+              aria-haspopup="dialog"
+              className={inputClassMobile}
             />
-          </div>
+          </form>
           {enabled ? (
             <div
               className="mt-3 flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-white/15 bg-black/30"
               id={mobileListId}
-              role="listbox"
-              aria-label="Movie search results"
+              role="region"
+              aria-label="Search suggestions"
             >
-              <SearchResultsBody
+              <SuggestionRows
                 isFetching={query.isFetching}
                 isError={query.isError}
                 errorMessage={errorMessage}
-                results={results}
+                movies={movieSuggestions}
+                tv={tvSuggestions}
+                query={debouncedQuery.trim()}
                 onPick={() => setMobileOpen(false)}
+                seeAllHref={seeAllHref}
               />
               <p className="mt-auto border-t border-white/10 px-3 py-2 text-[10px] leading-snug text-white/45">
                 This product uses the TMDB API but is not endorsed or certified by TMDB.
