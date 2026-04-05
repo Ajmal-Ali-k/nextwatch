@@ -1,4 +1,9 @@
-import { TMDB_API_V3_BASE, TMDB_IMAGE_BASE, posterUrl } from "@/lib/tmdb/constants";
+import {
+  TMDB_API_V3_BASE,
+  TMDB_IMAGE_BASE,
+  backdropHeroUrl,
+  posterUrl,
+} from "@/lib/tmdb/constants";
 import {
   buildCastCreditList,
   buildCrewCreditList,
@@ -12,13 +17,6 @@ const DEFAULT_LANGUAGE = "en-US";
  * `null` = language-agnostic entries; ISO 639-1 codes cover common Indian originals + English.
  */
 const INCLUDE_VIDEO_LANGUAGE = "en,null,ml,hi,ta,te,kn,mr";
-
-/** Full-resolution backdrop; TMDB fixed sizes top out at w1280, so `original` avoids upscaled blur on large viewports. */
-function backdropHeroUrl(path: string | null): string | null {
-  const p = typeof path === "string" ? path.trim() : "";
-  if (!p) return null;
-  return `${TMDB_IMAGE_BASE}/original${p}`;
-}
 
 function backdropGalleryUrl(path: string | null): string | null {
   const p = typeof path === "string" ? path.trim() : "";

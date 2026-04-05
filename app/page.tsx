@@ -7,6 +7,7 @@ import mainBanner from "@/assets/movies/main_banner.png"
 import MoviesRow from "@/components/MoviesRow"
 import LatestTrailersRow from "@/components/LatestTrailersRow"
 import HeroBannerSwiper from "@/components/HeroBannerSwiper"
+import { getHomeHeroSlides } from "@/lib/tmdb/homeHero"
 
 const experienceInTheatres = [
   { title: "1917", date: "Jan 17, 2020", image: movie1917 },
@@ -60,16 +61,15 @@ const latestTrailers = [
   { title: "Peaky Blinders ", date: "Jan 17, 2020", image: movieTenet },
 ];
 
-export default function Home() {
+export default async function Home() {
+  let heroSlides = await getHomeHeroSlides()
+  if (heroSlides.length === 0) {
+    heroSlides = [{ image: mainBanner, alt: "Featured on NextWatch" }]
+  }
+
   return (
     <main className="min-h-screen pb-16  text-white">
-      <HeroBannerSwiper
-        slides={[
-          { image: mainBanner, alt: "Main banner" },
-          { image: mainBanner, alt: "Main banner" },
-          { image: mainBanner, alt: "Main banner" },
-        ]}
-      />
+      <HeroBannerSwiper slides={heroSlides} />
 
       <div className="mx-auto flex container flex-col gap-16 pt-12">
         <LatestTrailersRow trailers={latestTrailers} />

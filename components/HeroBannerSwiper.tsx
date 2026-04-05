@@ -1,12 +1,17 @@
 "use client"
 
 import Image, { type StaticImageData } from "next/image"
+import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 
 export type HeroSlide = {
   image: string | StaticImageData
   alt: string
+  id?: number
+  href?: string
+  /** Shown in the bottom gradient overlay when set; otherwise `alt` is used. */
+  title?: string
 }
 
 export default function HeroBannerSwiper({
@@ -41,21 +46,43 @@ export default function HeroBannerSwiper({
           className="flex transition-transform duration-500 ease-out"
           style={{ transform: `translateX(-${activeIndex * 100}%)` }}
         >
-          {safeSlides.map((slide, i) => (
-            <div key={i} className="relative w-full shrink-0">
+          {safeSlides.map((slide, i) => {
+            const key = slide.id ?? i
+            const label = slide.title?.trim() || slide.alt
+            const inner = (
               <div className="relative aspect-21/9 w-full">
                 <Image
                   src={slide.image}
                   alt={slide.alt}
                   fill
                   priority={i === 0}
+                  sizes="100vw"
                   className="object-cover"
                 />
                 <div className="absolute inset-0 bg-black/10" />
-                <div className="absolute inset-x-0 bottom-0 h-24 bg-linear-to-t from-black/80 via-black/30 to-transparent" />
+                <div className="absolute inset-x-0 bottom-0 h-28 bg-linear-to-t from-black/85 via-black/35 to-transparent" />
+                {label && (slide.href || slide.title?.trim()) ? (
+                  <div className="absolute inset-x-0 bottom-0 z-1 px-4 pb-5 sm:px-6 sm:pb-6">
+                    <p className="max-w-3xl text-lg font-semibold tracking-tight text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.85)] sm:text-2xl md:text-3xl">
+                      {label}
+                    </p>
+                  </div>
+                ) : null}
               </div>
-            </div>
-          ))}
+            )
+
+            return (
+              <div key={key} className="relative w-full shrink-0">
+                {slide.href ? (
+                  <Link href={slide.href} className="block outline-offset-4 focus-visible:ring-2 focus-visible:ring-white/60">
+                    {inner}
+                  </Link>
+                ) : (
+                  inner
+                )}
+              </div>
+            )
+          })}
         </div>
 
         {/* Controls */}

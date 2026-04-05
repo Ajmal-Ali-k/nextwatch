@@ -1,4 +1,9 @@
-import { TMDB_API_V3_BASE, TMDB_IMAGE_BASE, posterUrl } from "@/lib/tmdb/constants";
+import {
+  TMDB_API_V3_BASE,
+  TMDB_IMAGE_BASE,
+  backdropHeroUrl,
+  posterUrl,
+} from "@/lib/tmdb/constants";
 import {
   buildCastCreditList,
   buildCrewCreditList,
@@ -8,12 +13,6 @@ import {
 const DEFAULT_LANGUAGE = "en-US";
 
 const INCLUDE_VIDEO_LANGUAGE = "en,null,ml,hi,ta,te,kn,mr";
-
-function backdropHeroUrl(path: string | null): string | null {
-  const p = typeof path === "string" ? path.trim() : "";
-  if (!p) return null;
-  return `${TMDB_IMAGE_BASE}/original${p}`;
-}
 
 function backdropGalleryUrl(path: string | null): string | null {
   const p = typeof path === "string" ? path.trim() : "";
