@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { DetailCreditPerson } from "@/lib/tmdb/detailCredits";
+import { DetailSectionHeading } from "./DetailSectionHeading";
 
 const SCROLL_HIDE =
   "[scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:size-0";
@@ -116,9 +117,12 @@ export function DetailCreditsSection({
   return (
     <div className="mt-12 border-t border-white/10 pt-10">
       <div className="mb-5 flex min-w-0 items-center justify-between gap-4">
-        <h2 className="font-(family-name:--font-anton) text-base font-medium  text-white sm:text-lg">
+        {/* <h2 className="font-(family-name:--font-anton) text-base font-medium  text-white sm:text-lg">
           {title}
-        </h2>
+        </h2> */}
+        <DetailSectionHeading className="mb-6">
+          {title}
+        </DetailSectionHeading>
         <div className="flex shrink-0 items-center gap-2">
           <button
             type="button"

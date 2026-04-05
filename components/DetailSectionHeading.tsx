@@ -18,7 +18,7 @@ export function DetailSectionHeading({
     <h2
       id={id}
       className={cn(
-        "font-(family-name:--font-anton) text-base font-normal uppercase tracking[0.14em] text-white sm:text-lg",
+        "font-(family-name:--font-anton) text-base font-normal uppercase tracking[0.14em] text-white sm:text-lg lg:text-xl xl:text-2xl",
         className
       )}
     >

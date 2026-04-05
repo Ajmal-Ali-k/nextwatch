@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import TvDetailView from "@/components/TvDetailView";
+import MediaDetailView from "@/components/MediaDetailView";
+import { tvToMediaPresentation } from "@/lib/tmdb/mediaDetailPresentation";
 import { loadTvDetail } from "@/lib/tmdb/tvDetail";
 
 type Props = { params: Promise<{ id: string }> };
@@ -42,5 +43,5 @@ export default async function TvShowDetailPage({ params }: Props) {
   const data = await loadTvDetail(tvId);
   if (!data) notFound();
 
-  return <TvDetailView data={data} />;
+  return <MediaDetailView model={tvToMediaPresentation(data)} />;
 }

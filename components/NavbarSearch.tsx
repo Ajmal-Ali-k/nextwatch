@@ -318,9 +318,9 @@ export default function NavbarSearch() {
               query={debouncedQuery.trim()}
               seeAllHref={seeAllHref}
             />
-            <p className="border-t border-white/10 px-3 py-2 text-[10px] leading-snug text-white/45">
+            {/* <p className="border-t border-white/10 px-3 py-2 text-[10px] leading-snug text-white/45">
               This product uses the TMDB API but is not endorsed or certified by TMDB.
-            </p>
+            </p> */}
           </SearchPanel>
         ) : null}
       </div>

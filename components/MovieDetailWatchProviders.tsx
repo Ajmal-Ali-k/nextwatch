@@ -130,7 +130,7 @@ export function MovieDetailWatchProviders(props: MovieDetailWatchProvidersProps)
   if (!q.data?.length) {
     return (
       <p className="text-sm text-white/50">
-        No streaming links listed for your region in TMDB.
+        No streaming links listed for your region.
       </p>
     );
   }

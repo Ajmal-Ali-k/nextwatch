@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import MovieDetailView from "@/components/MovieDetailView";
+import MediaDetailView from "@/components/MediaDetailView";
 import { loadMovieDetail } from "@/lib/tmdb/movieDetail";
+import { movieToMediaPresentation } from "@/lib/tmdb/mediaDetailPresentation";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -42,5 +43,5 @@ export default async function MovieDetailPage({ params }: Props) {
   const data = await loadMovieDetail(movieId);
   if (!data) notFound();
 
-  return <MovieDetailView data={data} />;
+  return <MediaDetailView model={movieToMediaPresentation(data)} />;
 }
