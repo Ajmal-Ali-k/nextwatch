@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Bookmark, Heart } from "lucide-react";
 
 import { DetailCreditsSection } from "@/components/DetailCreditsSection";
+import { DetailSectionHeading } from "@/components/DetailSectionHeading";
 import MoviesRow, { type Movie } from "@/components/MoviesRow";
 import { MovieGallery } from "@/components/MovieGallery";
 import { MovieDetailWatchProviders } from "@/components/MovieDetailWatchProviders";
@@ -129,10 +130,8 @@ export default function MovieDetailView({ data }: { data: MovieDetailPageData })
             <DetailCreditsSection cast={data.cast} crew={data.crew} />
 
             {data.gallery.length > 0 ? (
-              <div className="mt-10">
-                <h2 className="font-(family-name:--font-anton) mb-4 text-2xl uppercase tracking-tight">
-                  Gallery
-                </h2>
+              <div className="mt-12 border-t border-white/10 pt-10" id="gallery">
+                <DetailSectionHeading className="mb-6">Gallery</DetailSectionHeading>
                 <MovieGallery images={data.gallery} />
               </div>
             ) : null}
@@ -159,9 +158,7 @@ export default function MovieDetailView({ data }: { data: MovieDetailPageData })
               title="Similar Movies"
               heading={
                 <>
-                  If you liked{" "}
-                  <span className="normal-case text-[#F5C518]">{data.title}</span>
-                  {", you might also like..."}
+                  You Might Also Like
                 </>
               }
               movies={recommendedMovies}

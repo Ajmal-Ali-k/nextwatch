@@ -62,8 +62,7 @@ export function MovieGallery({ images }: { images: GalleryImage[] }) {
         className={cn(
           "absolute left-0 top-1/2 z-10 flex size-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/25 bg-black/60 text-white shadow-lg backdrop-blur-sm transition",
           "hover:border-white/45 hover:bg-black/75",
-          "disabled:pointer-events-none disabled:opacity-30",
-          "max-sm:-left-1"
+          "disabled:pointer-events-none disabled:opacity-30"
         )}
       >
         <ChevronLeft className="size-6" aria-hidden />
@@ -76,15 +75,14 @@ export function MovieGallery({ images }: { images: GalleryImage[] }) {
         className={cn(
           "absolute right-0 top-1/2 z-10 flex size-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/25 bg-black/60 text-white shadow-lg backdrop-blur-sm transition",
           "hover:border-white/45 hover:bg-black/75",
-          "disabled:pointer-events-none disabled:opacity-30",
-          "max-sm:-right-1"
+          "disabled:pointer-events-none disabled:opacity-30"
         )}
       >
         <ChevronRight className="size-6" aria-hidden />
       </button>
 
       <Swiper
-        className="!px-11 pb-2 max-sm:!px-9"
+        className="pl-0! pr-12! pb-2 max-sm:pr-10!"
         spaceBetween={16}
         slidesPerView={1}
         slidesPerGroup={1}

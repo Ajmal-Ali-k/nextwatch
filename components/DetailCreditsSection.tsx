@@ -44,10 +44,10 @@ function CreditCard({ person }: { person: DetailCreditPerson }) {
   return (
     <li className="flex w-21 shrink-0 flex-col items-center text-center">
       <CreditAvatar person={person} />
-      <p className="mt-2 w-full text-[11px] font-semibold leading-snug text-white/90 line-clamp-2">
+      <p className="mt-3 w-full text-[11px] font-semibold leading-snug text-white/90 line-clamp-2">
         {person.name}
       </p>
-      <p className="mt-0.5 w-full text-[10px] leading-snug text-white/50 line-clamp-2">
+      <p className="mt-1 w-full text-[10px] leading-snug text-white/50 line-clamp-2">
         {person.role}
       </p>
     </li>
@@ -56,12 +56,9 @@ function CreditCard({ person }: { person: DetailCreditPerson }) {
 
 function CastCrewDivider() {
   return (
-    <li
-      className="flex shrink-0 flex-col items-center justify-center self-stretch px-1"
-      aria-hidden
-    >
-      <div className="min-h-14 w-px flex-1 bg-linear-to-b from-transparent via-white/25 to-transparent" />
-      <span className="mt-1 whitespace-nowrap text-[9px] font-semibold uppercase tracking-wider text-white/45">
+    <li className="flex shrink-0 flex-col items-center gap-2 px-2 pt-0" aria-hidden>
+      <div className="h-11 w-px shrink-0 rounded-full bg-white/25" />
+      <span className="whitespace-nowrap text-[10px] font-semibold uppercase tracking-wider text-white/45">
         Crew
       </span>
     </li>
@@ -100,29 +97,29 @@ export function DetailCreditsSection({
   const scrollByDir = (dir: -1 | 1) => {
     const el = scrollRef.current;
     if (!el) return;
-    const delta = Math.min(el.clientWidth * 0.75, 280) * dir;
+    const delta = Math.min(el.clientWidth * 0.85, 320) * dir;
     el.scrollBy({ left: delta, behavior: "smooth" });
   };
 
   if (cast.length === 0 && crew.length === 0) return null;
 
-  const heading =
+  const title =
     cast.length > 0 && crew.length > 0
-      ? "Cast & crew"
+      ? "Cast & Crew"
       : cast.length > 0
         ? "Cast"
         : "Crew";
 
   const navBtnClass =
-    "flex size-9 shrink-0 items-center justify-center rounded-full border border-white/20 bg-black/50 text-white/85 backdrop-blur-sm transition hover:border-white/40 hover:bg-white/10 hover:text-white disabled:pointer-events-none disabled:opacity-0";
+    "flex size-9 shrink-0 items-center justify-center rounded-full border border-white/45 bg-transparent text-white transition hover:border-white hover:bg-white/5 disabled:pointer-events-none disabled:opacity-0";
 
   return (
-    <div className="mt-10 border-t border-white/10 pt-10">
-      <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-        <h2 className="font-(family-name:--font-anton) shrink-0 text-lg uppercase tracking-wide text-white/95 sm:w-32 sm:text-xl">
-          {heading}
+    <div className="mt-12 border-t border-white/10 pt-10">
+      <div className="mb-5 flex min-w-0 items-center justify-between gap-4">
+        <h2 className="font-(family-name:--font-anton) text-base font-medium  text-white sm:text-lg">
+          {title}
         </h2>
-        <div className="flex min-w-0 flex-1 items-center gap-1.5">
+        <div className="flex shrink-0 items-center gap-2">
           <button
             type="button"
             className={navBtnClass}
@@ -132,20 +129,6 @@ export function DetailCreditsSection({
           >
             <ChevronLeft className="size-5" aria-hidden />
           </button>
-          <ul
-            ref={scrollRef}
-            onScroll={updateScrollState}
-            className={`flex min-w-0 flex-1 flex-nowrap gap-3 overflow-x-auto overflow-y-hidden py-0.5 ${SCROLL_HIDE}`}
-            aria-label="Cast and crew"
-          >
-            {cast.map((person, i) => (
-              <CreditCard key={`cast-${person.name}-${i}`} person={person} />
-            ))}
-            {cast.length > 0 && crew.length > 0 ? <CastCrewDivider /> : null}
-            {crew.map((person, i) => (
-              <CreditCard key={`crew-${person.name}-${i}`} person={person} />
-            ))}
-          </ul>
           <button
             type="button"
             className={navBtnClass}
@@ -157,6 +140,21 @@ export function DetailCreditsSection({
           </button>
         </div>
       </div>
+
+      <ul
+        ref={scrollRef}
+        onScroll={updateScrollState}
+        className={`flex min-w-0 flex-nowrap gap-4 overflow-x-auto overflow-y-hidden py-1 ${SCROLL_HIDE}`}
+        aria-label="Cast and crew"
+      >
+        {cast.map((person, i) => (
+          <CreditCard key={`cast-${person.name}-${i}`} person={person} />
+        ))}
+        {cast.length > 0 && crew.length > 0 ? <CastCrewDivider /> : null}
+        {crew.map((person, i) => (
+          <CreditCard key={`crew-${person.name}-${i}`} person={person} />
+        ))}
+      </ul>
     </div>
   );
 }
