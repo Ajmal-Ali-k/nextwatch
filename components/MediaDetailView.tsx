@@ -1,17 +1,16 @@
 import Image from "next/image";
-import Link from "next/link";
-import { Bookmark, Heart } from "lucide-react";
+import { Heart } from "lucide-react";
 
 import { DetailCreditsSection } from "@/components/DetailCreditsSection";
 import { DetailSectionHeading } from "@/components/DetailSectionHeading";
 import { MovieGallery } from "@/components/MovieGallery";
 import { MovieDetailWatchProviders } from "@/components/MovieDetailWatchProviders";
+import { MediaDetailWatchlistButton } from "@/components/MediaDetailWatchlistButton";
 import { MovieTrailerModal } from "@/components/MovieTrailerModal";
 import MoviesRow, { type Movie } from "@/components/MoviesRow";
 import type { MediaDetailPresentation } from "@/lib/tmdb/mediaDetailPresentation";
 
 export default function MediaDetailView({ model }: { model: MediaDetailPresentation }) {
-  const tmdbKind = model.kind === "movie" ? "movie" : "tv";
   const similarRowTitle = model.kind === "movie" ? "Similar Movies" : "Similar shows";
 
   return (
@@ -101,13 +100,13 @@ export default function MediaDetailView({ model }: { model: MediaDetailPresentat
                       movieTitle={model.title}
                     />
                   ) : null}
-                  <button
-                    type="button"
-                    className="flex items-center gap-2 rounded-full border border-[#E50914] px-6 py-2.5 text-sm font-medium text-white transition hover:border-white/60 hover:bg-white/5"
-                  >
-                    <Bookmark className="size-4" />
-                    Add to Watchlist
-                  </button>
+                  <MediaDetailWatchlistButton
+                    kind={model.kind}
+                    id={model.id}
+                    title={model.title}
+                    posterUrl={model.posterUrl}
+                    dateLine={model.datePrimary}
+                  />
                   <button
                     type="button"
                     className="flex size-10 items-center justify-center rounded-full border border-[#E50914] text-white transition hover:border-white/60 hover:bg-white/5"
