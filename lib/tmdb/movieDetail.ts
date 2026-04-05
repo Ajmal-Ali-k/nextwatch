@@ -9,6 +9,7 @@ import {
   buildCrewCreditList,
   type DetailCreditPerson,
 } from "@/lib/tmdb/detailCredits";
+import { pickYoutubeTrailer, type TmdbVideo } from "@/lib/tmdb/videoPicker";
 
 const DEFAULT_LANGUAGE = "en-US";
 
@@ -23,13 +24,6 @@ function backdropGalleryUrl(path: string | null): string | null {
   if (!p) return null;
   return `${TMDB_IMAGE_BASE}/w780${p}`;
 }
-
-type TmdbVideo = {
-  key?: string;
-  type?: string;
-  site?: string;
-  official?: boolean;
-};
 
 type TmdbCastMember = {
   name?: string;
@@ -80,33 +74,6 @@ export type MovieDetailRecommended = {
   date: string;
   image: string;
 };
-
-const VIDEO_TYPE_ORDER: Record<string, number> = {
-  Trailer: 0,
-  Teaser: 1,
-  Clip: 2,
-  Featurette: 3,
-  "Behind the Scenes": 4,
-};
-
-function pickYoutubeTrailer(videos: TmdbVideo[] | undefined): string | null {
-  if (!videos?.length) return null;
-  const youtube = videos.filter(
-    (v) =>
-      v.site === "YouTube" &&
-      typeof v.key === "string" &&
-      v.key.length > 0
-  );
-  if (!youtube.length) return null;
-  const ranked = [...youtube].sort((a, b) => {
-    const ta = VIDEO_TYPE_ORDER[a.type ?? ""] ?? 50;
-    const tb = VIDEO_TYPE_ORDER[b.type ?? ""] ?? 50;
-    if (ta !== tb) return ta - tb;
-    if (a.official !== b.official) return a.official ? -1 : 1;
-    return 0;
-  });
-  return ranked[0]?.key ?? null;
-}
 
 function formatReleaseDate(iso: string): string {
   if (!iso) return "—";

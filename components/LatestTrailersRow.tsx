@@ -1,7 +1,9 @@
 "use client"
 
 import Image, { type StaticImageData } from "next/image"
-import { useCallback, useEffect, useRef, useState } from "react"
+import Link from "next/link"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { Play, X } from "lucide-react"
 import {
   animate,
   motion,
@@ -10,6 +12,8 @@ import {
   useMotionValueEvent,
   useScroll,
 } from "motion/react"
+
+import type { HomeLatestTrailersByCategory } from "@/lib/tmdb/latestTrailersTypes"
 
 const left = "0%"
 const right = "100%"
@@ -49,24 +53,113 @@ function useScrollOverflowMask(scrollXProgress: MotionValue<number>) {
 }
 
 export type Trailer = {
+  id?: string
   title: string
   date: string
   image: string | StaticImageData
+  youtubeKey?: string
+  detailHref?: string
+}
+
+function YoutubeTrailerLightbox({
+  open,
+  onClose,
+  youtubeKey,
+  title,
+}: {
+  open: boolean
+  onClose: () => void
+  youtubeKey: string
+  title: string
+}) {
+  const closeRef = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    closeRef.current?.focus()
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose()
+    }
+    document.addEventListener("keydown", onKey)
+    return () => {
+      document.body.style.overflow = prev
+      document.removeEventListener("keydown", onKey)
+    }
+  }, [open, onClose])
+
+  if (!open) return null
+
+  return (
+    <div
+      className="fixed inset-0 z-200 flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm"
+      role="presentation"
+      onClick={onClose}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Trailer: ${title}`}
+        className="relative w-full max-w-5xl outline-none"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          ref={closeRef}
+          type="button"
+          onClick={onClose}
+          className="absolute -right-1 -top-2 z-10 flex size-8 items-center justify-center rounded-full border border-white/30 bg-black/60 text-white transition hover:bg-white/15 sm:right-0 sm:top-0 sm:-translate-y-12"
+          aria-label="Close trailer"
+        >
+          <X className="size-4" />
+        </button>
+        <div className="aspect-video w-full overflow-hidden rounded-lg bg-black shadow-2xl ring-1 ring-white/10">
+          <iframe
+            title={`${title} trailer`}
+            src={`https://www.youtube.com/embed/${encodeURIComponent(youtubeKey)}?autoplay=1&rel=0`}
+            className="size-full"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowFullScreen
+          />
+        </div>
+      </div>
+    </div>
+  )
 }
 
 export default function LatestTrailersRow({
   title = "Latest Trailers",
   trailers,
+  trailersByCategory,
+  initialFilter,
   filters = ["Theatre", "OTT Series", "OTT Movies"],
 }: {
   title?: string
-  trailers: Trailer[]
+  /** Flat list (legacy). Ignored when `trailersByCategory` is set. */
+  trailers?: Trailer[]
+  trailersByCategory?: HomeLatestTrailersByCategory
+  /** When using categories, preferred first tab (e.g. first non-empty). */
+  initialFilter?: string
   filters?: string[]
 }) {
+  const filterTabs = filters.length ? filters : ["Theatre", "OTT Series", "OTT Movies"]
+  const [activeFilter, setActiveFilter] = useState(
+    () => initialFilter ?? filterTabs[0] ?? ""
+  )
+  const [playing, setPlaying] = useState<{ youtubeKey: string; title: string } | null>(
+    null
+  )
+
+  const visibleTrailers: Trailer[] = useMemo(() => {
+    if (trailersByCategory) {
+      return trailersByCategory[activeFilter as keyof HomeLatestTrailersByCategory] ?? []
+    }
+    return trailers ?? []
+  }, [trailersByCategory, activeFilter, trailers])
+
   const scrollRef = useRef<HTMLDivElement>(null)
   const { scrollXProgress } = useScroll({ container: scrollRef })
   const maskImage = useScrollOverflowMask(scrollXProgress)
-  const [activeFilter, setActiveFilter] = useState(filters[0] ?? "")
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(false)
 
@@ -109,7 +202,7 @@ export default function LatestTrailersRow({
       window.cancelAnimationFrame(frameId)
       window.removeEventListener("resize", updateScrollButtons)
     }
-  }, [updateScrollButtons])
+  }, [updateScrollButtons, visibleTrailers])
 
   useMotionValueEvent(scrollXProgress, "change", () => {
     updateScrollButtons()
@@ -117,6 +210,13 @@ export default function LatestTrailersRow({
 
   return (
     <section className="relative w-full overflow-hidden rounded-2xl">
+      <YoutubeTrailerLightbox
+        open={playing != null}
+        onClose={() => setPlaying(null)}
+        youtubeKey={playing?.youtubeKey ?? ""}
+        title={playing?.title ?? ""}
+      />
+
       {/* background panel + red glow */}
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute inset-0 bg-[#0a0a0a]/70" />
@@ -131,7 +231,7 @@ export default function LatestTrailersRow({
           </h2>
 
           <div className="inline-flex items-center overflow-hidden rounded-full border border-[#E50914]/60 bg-black/20 p-1">
-            {filters.map((filter) => (
+            {filterTabs.map((filter) => (
               <button
                 key={filter}
                 type="button"
@@ -192,33 +292,78 @@ export default function LatestTrailersRow({
             className="scroll-linked-list flex min-w-0 gap-5 overflow-x-scroll pb-4"
             style={{ maskImage }}
           >
-            {trailers.map((trailer, index) => (
-              <article
-                key={`${trailer.title}-${index}`}
-                className="group flex shrink-0 flex-col landscape-card"
-              >
-                <div className="relative mb-3 aspect-video overflow-hidden rounded-xl border border-white/10 transition group-hover:shadow-[0_0_30px_rgba(214,33,42,0.6)]">
-                  <Image
-                    src={trailer.image}
-                    alt={trailer.title}
-                    width={520}
-                    height={292}
-                    className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-black/10" />
-                </div>
-                <h3 className="font-(family-name:--font-anton) text-base sm:text-lg leading-snug text-white line-clamp-2">
-                  {trailer.title}
-                </h3>
-                <p className="mt-1 text-xs sm:text-sm text-white/60">
-                  {trailer.date}
-                </p>
-              </article>
-            ))}
+            {visibleTrailers.length === 0 ? (
+              <p className="py-8 text-sm text-white/55">
+                No trailers in this category right now.
+              </p>
+            ) : (
+              visibleTrailers.map((trailer, index) => {
+                const rowKey = trailer.id ?? `${trailer.title}-${index}`
+                const playable = Boolean(trailer.youtubeKey)
+
+                return (
+                  <article
+                    key={rowKey}
+                    className="group flex w-[min(100vw-3rem,320px)] shrink-0 flex-col landscape-card sm:w-[280px]"
+                  >
+                    {playable ? (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          trailer.youtubeKey &&
+                          setPlaying({ youtubeKey: trailer.youtubeKey, title: trailer.title })
+                        }
+                        className="text-left outline-offset-4 focus-visible:ring-2 focus-visible:ring-white/50"
+                      >
+                        <div className="relative mb-3 aspect-video overflow-hidden rounded-xl border border-white/10 transition group-hover:shadow-[0_0_30px_rgba(214,33,42,0.6)]">
+                          <Image
+                            src={trailer.image}
+                            alt={trailer.title}
+                            width={520}
+                            height={292}
+                            className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                          />
+                          <div className="absolute inset-0 bg-black/10" />
+                          <span className="absolute inset-0 flex items-center justify-center bg-black/35 opacity-90 transition group-hover:bg-black/45">
+                            <span className="flex size-14 items-center justify-center rounded-full bg-[#E50914] text-white shadow-lg ring-2 ring-white/30">
+                              <Play className="size-7 fill-white" aria-hidden />
+                            </span>
+                          </span>
+                        </div>
+                      </button>
+                    ) : (
+                      <div className="relative mb-3 aspect-video overflow-hidden rounded-xl border border-white/10">
+                        <Image
+                          src={trailer.image}
+                          alt={trailer.title}
+                          width={520}
+                          height={292}
+                          className="h-full w-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-black/10" />
+                      </div>
+                    )}
+
+                    <h3 className="font-(family-name:--font-anton) text-base sm:text-lg leading-snug text-white line-clamp-2">
+                      {trailer.title}
+                    </h3>
+                    <p className="mt-1 text-xs sm:text-sm text-white/60">{trailer.date}</p>
+                    {trailer.detailHref ? (
+                      <Link
+                        href={trailer.detailHref}
+                        className="mt-2 inline-block text-xs font-medium text-[#E50914] underline-offset-2 hover:underline"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        View details
+                      </Link>
+                    ) : null}
+                  </article>
+                )
+              })
+            )}
           </motion.div>
         </div>
       </div>
     </section>
   )
 }
-

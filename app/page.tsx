@@ -7,7 +7,9 @@ import mainBanner from "@/assets/movies/main_banner.png"
 import MoviesRow from "@/components/MoviesRow"
 import LatestTrailersRow from "@/components/LatestTrailersRow"
 import HeroBannerSwiper from "@/components/HeroBannerSwiper"
+import { getServerHomePreferences } from "@/lib/server/homePreferences"
 import { getHomeHeroSlides } from "@/lib/tmdb/homeHero"
+import { getHomeLatestTrailersByCategory } from "@/lib/tmdb/latestTrailersHome"
 
 const experienceInTheatres = [
   { title: "1917", date: "Jan 17, 2020", image: movie1917 },
@@ -51,28 +53,30 @@ const newMoviesOnOtt = [
   },
 ];
 
-const latestTrailers = [
-  { title: "One Battle After Another", date: "Jan 17, 2020", image: movieOnceUponATime },
-  { title: "Peaky Blinders", date: "Jan 17, 2020", image: movieTenet },
-  { title: "1917", date: "Jan 17, 2020", image: movie1917 },
-  { title: "Her", date: "Jan 17, 2020", image: movieHer },
-  { title: "Tenet", date: "Jan 17, 2020", image: movieTenet },
-  { title: "Peaky Blinders", date: "Jan 17, 2020", image: movieTenet },
-  { title: "Peaky Blinders ", date: "Jan 17, 2020", image: movieTenet },
-];
+const TRAILER_FILTERS = ["Theatre", "OTT Series", "OTT Movies"] as const
 
 export default async function Home() {
+  const homePrefs = await getServerHomePreferences()
+
   let heroSlides = await getHomeHeroSlides()
   if (heroSlides.length === 0) {
     heroSlides = [{ image: mainBanner, alt: "Featured on NextWatch" }]
   }
+
+  const trailersByCategory = await getHomeLatestTrailersByCategory(homePrefs)
+  const initialTrailerFilter =
+    TRAILER_FILTERS.find((k) => trailersByCategory[k].length > 0) ?? TRAILER_FILTERS[0]
 
   return (
     <main className="min-h-screen pb-16  text-white">
       <HeroBannerSwiper slides={heroSlides} />
 
       <div className="mx-auto flex container flex-col gap-16 pt-12">
-        <LatestTrailersRow trailers={latestTrailers} />
+        <LatestTrailersRow
+          trailersByCategory={trailersByCategory}
+          initialFilter={initialTrailerFilter}
+          filters={[...TRAILER_FILTERS]}
+        />
         <MoviesRow
           title="New Releases in Cinemas"
           movies={experienceInTheatres}

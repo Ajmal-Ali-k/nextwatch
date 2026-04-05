@@ -6,46 +6,41 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
+import { useRouter } from "next/navigation";
+
+import {
+  COOKIE_UI_LANGUAGE,
+  COOKIE_WATCH_REGION,
+} from "@/lib/regionLanguageCookieNames";
+import {
+  defaultLanguageForRegion,
+  isValidLanguageForRegion,
+  type UiLanguageCode,
+  type WatchRegionCode,
+  WATCH_REGIONS,
+} from "@/lib/regionLanguagePrefs";
+
+export {
+  defaultLanguageForRegion,
+  languageLabelFor,
+  LANGUAGES_BY_REGION,
+  type UiLanguageCode,
+  type WatchRegionCode,
+  WATCH_REGIONS,
+} from "@/lib/regionLanguagePrefs";
 
 const STORAGE_KEY = "nextwatch.watchRegionLanguage";
+const COOKIE_MAX_AGE_SEC = 60 * 60 * 24 * 365;
 
-export const WATCH_REGIONS = [
-  { code: "IN", label: "India" },
-  { code: "US", label: "United States" },
-  { code: "GB", label: "United Kingdom (UK)" },
-] as const;
-
-export type WatchRegionCode = (typeof WATCH_REGIONS)[number]["code"];
-
-export type UiLanguageCode = "hi-IN" | "ta-IN" | "te-IN" | "ml-IN" | "en-US" | "en-GB";
-
-export const LANGUAGES_BY_REGION: Record<
-  WatchRegionCode,
-  readonly { code: UiLanguageCode; label: string }[]
-> = {
-  IN: [
-    { code: "hi-IN", label: "Hindi" },
-    { code: "ta-IN", label: "Tamil" },
-    { code: "te-IN", label: "Telugu" },
-    { code: "ml-IN", label: "Malayalam" },
-  ],
-  US: [{ code: "en-US", label: "English (US)" }],
-  GB: [{ code: "en-GB", label: "English (UK)" }],
-};
-
-export function defaultLanguageForRegion(region: WatchRegionCode): UiLanguageCode {
-  return LANGUAGES_BY_REGION[region][0].code;
-}
-
-function isValidLanguageForRegion(region: WatchRegionCode, lang: string): lang is UiLanguageCode {
-  return LANGUAGES_BY_REGION[region].some((l) => l.code === lang);
-}
-
-export function languageLabelFor(region: WatchRegionCode, code: UiLanguageCode): string {
-  return LANGUAGES_BY_REGION[region].find((l) => l.code === code)?.label ?? code;
+function persistRegionLanguageToCookies(watchRegion: WatchRegionCode, language: UiLanguageCode) {
+  if (typeof document === "undefined") return;
+  const base = `path=/;max-age=${COOKIE_MAX_AGE_SEC};SameSite=Lax`;
+  document.cookie = `${COOKIE_WATCH_REGION}=${watchRegion};${base}`;
+  document.cookie = `${COOKIE_UI_LANGUAGE}=${encodeURIComponent(language)};${base}`;
 }
 
 type Stored = {
@@ -86,9 +81,11 @@ function readStored(): Stored | null {
 }
 
 export function RegionLanguageProvider({ children }: { children: ReactNode }) {
+  const router = useRouter();
   const [watchRegion, setWatchRegionState] = useState<WatchRegionCode>(DEFAULTS.watchRegion);
   const [language, setLanguageState] = useState<UiLanguageCode>(DEFAULTS.language);
   const [hydrated, setHydrated] = useState(false);
+  const skipRefreshAfterFirstPersist = useRef(true);
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -96,16 +93,24 @@ export function RegionLanguageProvider({ children }: { children: ReactNode }) {
       if (stored) {
         setWatchRegionState(stored.watchRegion);
         setLanguageState(stored.language);
+        persistRegionLanguageToCookies(stored.watchRegion, stored.language);
+        router.refresh();
       }
       setHydrated(true);
     });
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     if (!hydrated) return;
     const payload: Stored = { watchRegion, language };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-  }, [watchRegion, language, hydrated]);
+    persistRegionLanguageToCookies(watchRegion, language);
+    if (skipRefreshAfterFirstPersist.current) {
+      skipRefreshAfterFirstPersist.current = false;
+      return;
+    }
+    router.refresh();
+  }, [watchRegion, language, hydrated, router]);
 
   const setWatchRegion = useCallback((code: WatchRegionCode) => {
     setWatchRegionState(code);
