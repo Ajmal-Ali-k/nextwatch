@@ -1,126 +1,179 @@
 "use client";
 
-import Image, { type StaticImageData } from "next/image";
+import Image from "next/image";
+import Link from "next/link";
 import { useMemo, useState } from "react";
-import { ChevronDown } from "lucide-react";
-
-import movie1917 from "@/assets/movies/1971.png";
-import movieHer from "@/assets/movies/her.png";
-import movieEternalSunshine from "@/assets/movies/eternal_sunshine.png";
-import movieOnceUponATime from "@/assets/movies/onece_uponeatime_hollywood.png";
-import movieTenet from "@/assets/movies/tenet.png";
+import { useQuery } from "@tanstack/react-query";
+import { useRegionLanguage } from "@/components/RegionLanguageProvider";
 
 type TabKey = "In Theatres" | "Movies on OTT" | "TV Series on OTT";
 
 type CalendarMovie = {
+  id: number;
+  kind: "movie" | "tv";
   title: string;
   date: string;
-  image: StaticImageData;
+  image: string | null;
 };
 
 const tabs: TabKey[] = ["In Theatres", "Movies on OTT", "TV Series on OTT"];
 
-const calendarData: Record<
-  string,
-  Record<TabKey, CalendarMovie[]>
-> = {
-  "March 14, 2026": {
-    "In Theatres": [
-      { title: "1917", date: "Jan 17, 2020", image: movie1917 },
-      { title: "Her", date: "Jan 17, 2020", image: movieHer },
-      {
-        title: "Eternal Sunshine of the Spotless Mind",
-        date: "Jan 17, 2020",
-        image: movieEternalSunshine,
-      },
-      {
-        title: "Once Upon a Time in Hollywood",
-        date: "Jan 17, 2020",
-        image: movieOnceUponATime,
-      },
-    ],
-    "Movies on OTT": [
-      { title: "Tenet", date: "Jan 17, 2020", image: movieTenet },
-      { title: "Her", date: "Jan 17, 2020", image: movieHer },
-      { title: "1917", date: "Jan 17, 2020", image: movie1917 },
-      {
-        title: "Once Upon a Time in Hollywood",
-        date: "Jan 17, 2020",
-        image: movieOnceUponATime,
-      },
-    ],
-    "TV Series on OTT": [
-      { title: "Her", date: "Jan 17, 2020", image: movieHer },
-      { title: "Tenet", date: "Jan 17, 2020", image: movieTenet },
-      {
-        title: "Eternal Sunshine of the Spotless Mind",
-        date: "Jan 17, 2020",
-        image: movieEternalSunshine,
-      },
-      { title: "1917", date: "Jan 17, 2020", image: movie1917 },
-    ],
-  },
-  "March 20, 2026": {
-    "In Theatres": [
-      { title: "1917", date: "Jan 17, 2020", image: movie1917 },
-      { title: "Her", date: "Jan 17, 2020", image: movieHer },
-      {
-        title: "Eternal Sunshine of the Spotless Mind",
-        date: "Jan 17, 2020",
-        image: movieEternalSunshine,
-      },
-      { title: "Tenet", date: "Jan 17, 2020", image: movieTenet },
-    ],
-    "Movies on OTT": [
-      { title: "Tenet", date: "Jan 17, 2020", image: movieTenet },
-      {
-        title: "Once Upon a Time in Hollywood",
-        date: "Jan 17, 2020",
-        image: movieOnceUponATime,
-      },
-      { title: "Her", date: "Jan 17, 2020", image: movieHer },
-      { title: "1917", date: "Jan 17, 2020", image: movie1917 },
-    ],
-    "TV Series on OTT": [
-      { title: "1917", date: "Jan 17, 2020", image: movie1917 },
-      { title: "Her", date: "Jan 17, 2020", image: movieHer },
-      { title: "Tenet", date: "Jan 17, 2020", image: movieTenet },
-      {
-        title: "Once Upon a Time in Hollywood",
-        date: "Jan 17, 2020",
-        image: movieOnceUponATime,
-      },
-    ],
-  },
-  "March 24, 2026": {
-    "In Theatres": [
-      { title: "1917", date: "Jan 17, 2020", image: movie1917 },
-      { title: "Her", date: "Jan 17, 2020", image: movieHer },
-    ],
-    "Movies on OTT": [
-      { title: "Her", date: "Jan 17, 2020", image: movieHer },
-      { title: "Tenet", date: "Jan 17, 2020", image: movieTenet },
-    ],
-    "TV Series on OTT": [
-      {
-        title: "Eternal Sunshine of the Spotless Mind",
-        date: "Jan 17, 2020",
-        image: movieEternalSunshine,
-      },
-      { title: "1917", date: "Jan 17, 2020", image: movie1917 },
-    ],
-  },
+type MoviesApiJson = {
+  results: {
+    id: number;
+    title: string;
+    releaseDate: string;
+    posterUrl: string | null;
+  }[];
 };
+
+type TvApiJson = {
+  results: {
+    id: number;
+    title: string;
+    firstAirDate: string;
+    posterUrl: string | null;
+  }[];
+};
+
+function formatDayLabel(iso: string): string {
+  const d = new Date(`${iso}T12:00:00`);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
+
+function toSections(items: CalendarMovie[]) {
+  const grouped = new Map<string, CalendarMovie[]>();
+  for (const item of items) {
+    const dateKey = item.date && item.date !== "—" ? item.date : "TBA";
+    const arr = grouped.get(dateKey) ?? [];
+    arr.push(item);
+    grouped.set(dateKey, arr);
+  }
+
+  const sorted = [...grouped.entries()].sort(([a], [b]) => {
+    if (a === "TBA") return 1;
+    if (b === "TBA") return -1;
+    return b.localeCompare(a);
+  });
+
+  return sorted.map(([dateKey, movies]) => ({
+    dayLabel: dateKey === "TBA" ? "To Be Announced" : formatDayLabel(dateKey),
+    movies,
+  }));
+}
+
+function isWithinNextMonths(iso: string, months: number): boolean {
+  if (!iso || iso === "—") return false;
+  const d = new Date(`${iso}T12:00:00`);
+  if (Number.isNaN(d.getTime())) return false;
+  const now = new Date();
+  const maxFuture = new Date();
+  maxFuture.setMonth(maxFuture.getMonth() + months);
+  return d >= now && d <= maxFuture;
+}
+
+function isWithinWindow(iso: string, pastMonths: number, futureMonths: number): boolean {
+  if (!iso || iso === "—") return false;
+  const d = new Date(`${iso}T12:00:00`);
+  if (Number.isNaN(d.getTime())) return false;
+  const minDate = new Date();
+  minDate.setMonth(minDate.getMonth() - pastMonths);
+  const maxDate = new Date();
+  maxDate.setMonth(maxDate.getMonth() + futureMonths);
+  return d >= minDate && d <= maxDate;
+}
 
 export default function ReleaseCalendarPage() {
   const [activeTab, setActiveTab] = useState<TabKey>("In Theatres");
+  const { watchRegion, language } = useRegionLanguage();
+
+  const calendarQuery = useQuery<CalendarMovie[]>({
+    queryKey: ["calendar-page", activeTab, watchRegion, language],
+    queryFn: async () => {
+      if (activeTab === "In Theatres") {
+        const region = encodeURIComponent(watchRegion);
+        const [nowRes, upcomingRes] = await Promise.all([
+          fetch(`/api/movies/now-playing?watchRegion=${region}&page=1`, { cache: "no-store" }),
+          fetch(`/api/movies/upcoming?watchRegion=${region}&page=1`, { cache: "no-store" }),
+        ]);
+        if (!nowRes.ok || !upcomingRes.ok) {
+          throw new Error("Failed to load theatrical and upcoming releases");
+        }
+        const [nowData, upcomingData] = (await Promise.all([
+          nowRes.json(),
+          upcomingRes.json(),
+        ])) as [MoviesApiJson, MoviesApiJson];
+
+        const merged = [...nowData.results, ...upcomingData.results];
+        const deduped = new Map<number, (typeof merged)[number]>();
+        for (const row of merged) {
+          if (!deduped.has(row.id)) deduped.set(row.id, row);
+        }
+        return [...deduped.values()]
+          .filter((m) => isWithinNextMonths(m.releaseDate, 2))
+          .map((m) => ({
+            id: m.id,
+            kind: "movie" as const,
+            title: m.title,
+            date: m.releaseDate,
+            image: m.posterUrl,
+          }));
+      }
+
+      if (activeTab === "Movies on OTT") {
+        const params = new URLSearchParams({
+          watchRegion,
+          language,
+          sortBy: "primary_release_date.desc",
+          page: "1",
+        });
+        const res = await fetch(`/api/movies/discover?${params.toString()}`, {
+          cache: "no-store",
+        });
+        if (!res.ok) throw new Error("Failed to load OTT movies");
+        const data = (await res.json()) as MoviesApiJson;
+        return data.results
+          .filter((m) => isWithinWindow(m.releaseDate, 24, 2))
+          .map((m) => ({
+            id: m.id,
+            kind: "movie" as const,
+            title: m.title,
+            date: m.releaseDate,
+            image: m.posterUrl,
+          }));
+      }
+
+      const params = new URLSearchParams({
+        watchRegion,
+        language,
+        sortBy: "first_air_date.desc",
+        page: "1",
+      });
+      const res = await fetch(`/api/tv/discover?${params.toString()}`, {
+        cache: "no-store",
+      });
+      if (!res.ok) throw new Error("Failed to load OTT TV series");
+      const data = (await res.json()) as TvApiJson;
+      return data.results
+        .filter((s) => isWithinWindow(s.firstAirDate, 24, 2))
+        .map((s) => ({
+          id: s.id,
+          kind: "tv" as const,
+          title: s.title,
+          date: s.firstAirDate,
+          image: s.posterUrl,
+        }));
+    },
+  });
 
   const sections = useMemo(() => {
-    return Object.entries(calendarData).map(([dayLabel, byTab]) => ({
-      dayLabel,
-      movies: byTab[activeTab],
-    }));
-  }, [activeTab]);
+    return toSections(calendarQuery.data ?? []);
+  }, [calendarQuery.data]);
 
   return (
     <main className="relative min-h-screen pb-16 pt-12 text-white">
@@ -159,19 +212,25 @@ export default function ReleaseCalendarPage() {
               </div>
 
               {/* filter by country */}
-              <button
+              {/* <button
                 type="button"
                 className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-black/25 px-4 py-2 text-sm text-white/80 backdrop-blur-sm transition hover:border-white/30"
               >
-                Filter by Country{" "}
+                {watchRegion} · {languageLabelFor(watchRegion, language)}{" "}
                 <ChevronDown className="size-4 text-white/70" />
-              </button>
+              </button> */}
             </div>
           </div>
         </div>
 
         {/* Sections */}
         <div className="mt-10 space-y-12 px-4 sm:px-6 lg:px-0">
+          {calendarQuery.isLoading ? (
+            <p className="text-sm text-white/70">Loading calendar…</p>
+          ) : null}
+          {calendarQuery.isError ? (
+            <p className="text-sm text-red-300">Could not load release calendar right now.</p>
+          ) : null}
           {sections.map(({ dayLabel, movies }) => (
             <section key={dayLabel}>
               <h2 className="font-(family-name:--font-anton) mb-6 text-xl sm:text-2xl uppercase tracking-tight text-white/95">
@@ -180,25 +239,38 @@ export default function ReleaseCalendarPage() {
 
               <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
                 {movies.map((m, idx) => (
-                  <article key={`${dayLabel}-${m.title}-${idx}`} className="group">
+                  <Link
+                    key={`${dayLabel}-${m.id}-${idx}`}
+                    href={m.kind === "tv" ? `/tv-shows/${m.id}` : `/movies/${m.id}`}
+                    className="group text-inherit no-underline"
+                  >
                     <div className="relative aspect-2/3 overflow-hidden rounded-xl border border-white/10 bg-white/5">
-                      <Image
-                        src={m.image}
-                        alt={m.title}
-                        fill
-                        className="object-cover transition duration-300 group-hover:scale-105"
-                      />
+                      {m.image ? (
+                        <Image
+                          src={m.image}
+                          alt={m.title}
+                          fill
+                          className="object-cover transition duration-300 group-hover:scale-105"
+                        />
+                      ) : (
+                        <div className="flex size-full items-center justify-center text-sm text-white/45">
+                          No poster
+                        </div>
+                      )}
                     </div>
 
                     <h3 className="mt-3 font-(family-name:--font-anton) text-base leading-snug text-white line-clamp-2">
                       {m.title}
                     </h3>
                     <p className="mt-1 text-xs text-white/60">{m.date}</p>
-                  </article>
+                  </Link>
                 ))}
               </div>
             </section>
           ))}
+          {!calendarQuery.isLoading && !calendarQuery.isError && sections.length === 0 ? (
+            <p className="text-sm text-white/70">No releases found for this selection.</p>
+          ) : null}
         </div>
       </div>
     </main>
