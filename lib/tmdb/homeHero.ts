@@ -7,6 +7,7 @@ const HERO_LIMIT = 8;
 type TmdbTrendingMovie = {
   id?: number;
   title?: string;
+  overview?: string;
   backdrop_path?: string | null;
 };
 
@@ -34,6 +35,7 @@ export async function getHomeHeroSlides(): Promise<HeroSlide[]> {
       if (slides.length >= HERO_LIMIT) break;
       const id = item.id;
       const title = typeof item.title === "string" ? item.title.trim() : "";
+      const overview = typeof item.overview === "string" ? item.overview.trim() : "";
       const backdropUrl = backdropHeroUrl(item.backdrop_path ?? null);
       if (typeof id !== "number" || !Number.isInteger(id) || id < 1) continue;
       if (!title || !backdropUrl) continue;
@@ -43,6 +45,7 @@ export async function getHomeHeroSlides(): Promise<HeroSlide[]> {
         image: backdropUrl,
         alt: title,
         title,
+        subtitle: overview ? overview.slice(0, 180) : undefined,
         href: `/movies/${id}`,
       });
     }
