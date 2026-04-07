@@ -147,7 +147,7 @@ export default function MoviesRow({
             {heading ?? title}
           </h2>
 
-          {filters && filters.length > 0 && (
+          {/* {filters && filters.length > 0 && (
             <div className="inline-flex items-center overflow-hidden rounded-full border border-[#E50914]/60 bg-black/20 p-1">
               {filters.map((filter) => (
                 <button
@@ -163,7 +163,7 @@ export default function MoviesRow({
                 </button>
               ))}
             </div>
-          )}
+          )} */}
 
           {showViewAll && (
             <div className="ml-auto">
