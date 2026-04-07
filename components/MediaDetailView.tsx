@@ -72,16 +72,17 @@ export default function MediaDetailView({ model }: { model: MediaDetailPresentat
               </div>
 
               <div className="flex max-w-xl flex-col gap-5">
-                {model.genres.length > 0 ? (
+                {model.languageLabel || model.genres.length > 0 ? (
                   <div className="flex flex-wrap gap-2.5">
-                    {model.genres.map((genre, i) => (
+                    {model.languageLabel ? (
+                      <span className="rounded-full border border-[#F5C518] bg-[#F5C518]/20 px-5 py-1.5 text-sm font-medium text-white">
+                        {model.languageLabel}
+                      </span>
+                    ) : null}
+                    {model.genres.map((genre) => (
                       <span
                         key={genre}
-                        className={`rounded-full border px-5 py-1.5 text-sm font-medium transition ${
-                          i === 0
-                            ? "border-[#F5C518] bg-[#F5C518]/20 text-white"
-                            : "border-white/30 text-white/90 hover:border-white/60"
-                        }`}
+                        className="rounded-full border border-white/30 px-5 py-1.5 text-sm font-medium text-white/90 transition hover:border-white/60"
                       >
                         {genre}
                       </span>

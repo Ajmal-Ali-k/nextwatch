@@ -9,8 +9,9 @@ import {
   type WatchlistItem,
 } from "@/lib/watchlist/storage";
 
+const EMPTY_SERVER_SNAPSHOT: WatchlistItem[] = [];
 function getServerSnapshot(): WatchlistItem[] {
-  return [];
+  return EMPTY_SERVER_SNAPSHOT;
 }
 
 export function useWatchlist() {

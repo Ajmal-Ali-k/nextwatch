@@ -9,6 +9,7 @@ import {
   buildCrewCreditList,
   type DetailCreditPerson,
 } from "@/lib/tmdb/detailCredits";
+import { tmdbLanguageLabel } from "@/lib/tmdb/languageLabel";
 import { pickYoutubeTrailer, type TmdbVideo } from "@/lib/tmdb/videoPicker";
 
 const DEFAULT_LANGUAGE = "en-US";
@@ -53,6 +54,7 @@ type TmdbTvDetailAppended = {
   name?: string;
   overview?: string;
   first_air_date?: string;
+  original_language?: string | null;
   status?: string;
   poster_path?: string | null;
   backdrop_path?: string | null;
@@ -135,6 +137,7 @@ export type TvDetailPageData = {
   overview: string;
   firstAirDate: string;
   firstAirDateFormatted: string;
+  languageLabel: string | null;
   statusLabel: string;
   episodeRuntimeLabel: string | null;
   posterUrl: string | null;
@@ -179,6 +182,7 @@ export async function loadTvDetail(
   const overview = typeof data.overview === "string" ? data.overview : "";
   const firstAirDate =
     typeof data.first_air_date === "string" ? data.first_air_date : "";
+  const languageLabel = tmdbLanguageLabel(data.original_language ?? null);
 
   const rawStatus = typeof data.status === "string" ? data.status.trim() : "";
   const statusLabel = rawStatus || "Series";
@@ -221,6 +225,7 @@ export async function loadTvDetail(
     overview: overview || "No overview available.",
     firstAirDate,
     firstAirDateFormatted: formatFirstAirDate(firstAirDate),
+    languageLabel,
     statusLabel,
     episodeRuntimeLabel: episodeRuntimeLabel(data.episode_run_time),
     posterUrl: poster,

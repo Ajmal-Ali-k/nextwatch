@@ -9,6 +9,7 @@ import {
   buildCrewCreditList,
   type DetailCreditPerson,
 } from "@/lib/tmdb/detailCredits";
+import { tmdbLanguageLabel } from "@/lib/tmdb/languageLabel";
 import { pickYoutubeTrailer, type TmdbVideo } from "@/lib/tmdb/videoPicker";
 
 const DEFAULT_LANGUAGE = "en-US";
@@ -57,6 +58,7 @@ type TmdbMovieDetailAppended = {
   title?: string;
   overview?: string;
   release_date?: string;
+  original_language?: string | null;
   runtime?: number | null;
   poster_path?: string | null;
   backdrop_path?: string | null;
@@ -130,6 +132,7 @@ export type MovieDetailPageData = {
   overview: string;
   releaseDate: string;
   releaseDateFormatted: string;
+  languageLabel: string | null;
   runtimeLabel: string | null;
   posterUrl: string | null;
   backdropUrl: string | null;
@@ -172,6 +175,7 @@ export async function loadMovieDetail(
 
   const overview = typeof data.overview === "string" ? data.overview : "";
   const releaseDate = typeof data.release_date === "string" ? data.release_date : "";
+  const languageLabel = tmdbLanguageLabel(data.original_language ?? null);
 
   const runtimeMin =
     typeof data.runtime === "number" && data.runtime > 0 ? data.runtime : null;
@@ -220,6 +224,7 @@ export async function loadMovieDetail(
     overview: overview || "No overview available.",
     releaseDate,
     releaseDateFormatted: formatReleaseDate(releaseDate),
+    languageLabel,
     runtimeLabel,
     posterUrl: poster,
     backdropUrl: backdrop,

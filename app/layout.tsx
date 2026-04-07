@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter_Tight, Anton } from "next/font/google";
 import Navbar from "@/components/Navbar";
+import { DefaultPageReveal } from "@/components/DefaultPageReveal";
 import Footer from "@/components/footer";
 import { QueryProvider } from "@/components/QueryProvider";
 import { RegionLanguageProvider } from "@/components/RegionLanguageProvider";
@@ -32,8 +33,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <RegionLanguageProvider>
           <QueryProvider>
             <Navbar />
-            {children}
-            <Footer />
+            <DefaultPageReveal>
+              {children}
+              <Footer />
+            </DefaultPageReveal>
           </QueryProvider>
         </RegionLanguageProvider>
       </body>

@@ -64,6 +64,7 @@ export default function MoviesRow({
   filters,
   landscape = false,
   showViewAll = true,
+  viewAllLink,
   linkBase = "movie",
 }: {
   title: string
@@ -74,6 +75,8 @@ export default function MoviesRow({
   filters?: string[]
   landscape?: boolean
   showViewAll?: boolean
+  /** Optional destination for the "View All" action. */
+  viewAllLink?: string
   /** Where detail links resolve (`/movies/[id]` vs `/tv-shows/[id]`). */
   linkBase?: "movie" | "tv"
 }) {
@@ -164,13 +167,13 @@ export default function MoviesRow({
 
           {showViewAll && (
             <div className="ml-auto">
-              <button
-                type="button"
-                className="group/btn relative overflow-hidden rounded-md border border-[#E50914] bg-transparent px-10 py-2 text-sm font-medium text-white"
+              <Link
+                href={viewAllLink ?? "#"}
+                className="group/btn relative inline-flex items-center justify-center overflow-hidden rounded-md border border-[#E50914] bg-transparent px-10 py-2 text-sm font-medium text-white no-underline transition-shadow duration-300 hover:shadow-[0_0_32px_rgba(229,9,20,0.65)]"
               >
-                <span className="absolute inset-0 -translate-x-full bg-[#E50914] transition-transform duration-300 ease-out group-hover/btn:translate-x-0" />
+                <span className="pointer-events-none absolute inset-0 -translate-x-full bg-[#E50914] transition-transform duration-300 ease-out group-hover/btn:translate-x-0" />
                 <span className="relative">View All</span>
-              </button>
+              </Link>
             </div>
           )}
         </div>

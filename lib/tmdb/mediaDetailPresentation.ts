@@ -21,6 +21,7 @@ export type MediaDetailPresentation = {
   backdropUrl: string | null;
   posterUrl: string | null;
   overview: string;
+  languageLabel: string | null;
   genres: string[];
   /** Small gold label above the main date (e.g. Released / First aired). */
   dateEyebrow: string;
@@ -45,6 +46,7 @@ export function movieToMediaPresentation(data: MovieDetailPageData): MediaDetail
     backdropUrl: data.backdropUrl,
     posterUrl: data.posterUrl,
     overview: data.overview,
+    languageLabel: data.languageLabel,
     genres: data.genres,
     dateEyebrow: "Released",
     datePrimary: data.releaseDateFormatted,
@@ -74,6 +76,7 @@ export function tvToMediaPresentation(data: TvDetailPageData): MediaDetailPresen
     backdropUrl: data.backdropUrl,
     posterUrl: data.posterUrl,
     overview: data.overview,
+    languageLabel: data.languageLabel,
     genres: data.genres,
     dateEyebrow: "First aired",
     datePrimary: data.firstAirDateFormatted,
