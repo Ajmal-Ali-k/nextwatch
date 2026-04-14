@@ -40,13 +40,13 @@ export default function Navbar() {
         {/* Logo */}
         <Link
           href="/"
-          className="shrink-0 font-bold tracking-tight text-white text-lg sm:text-xl"
+          className="shrink-0 font-bold trackingtight text-white text-lg sm:text-xl font-heading antialiased"
         >
           NextWatchList
         </Link>
 
         {/* Nav links */}
-        <div className="hidden items-center gap-6 md:flex">
+        <div className="hidden items-center gap-6 md:flex font-sans">
           {navLinks.map(({ href, label }) => (
             <Link
               key={href}
@@ -60,8 +60,8 @@ export default function Navbar() {
 
         <NavbarSearch />
 
-        <div className="flex shrink-0 items-center gap-3 sm:gap-4">
-          <div className="relative" ref={localeRef}>
+        <div className="flex shrink-0 items-center gap-3 sm:gap-4 font-sans">
+          <div className="relative font-sans" ref={localeRef}>
             <button
               type="button"
               onClick={() => setLocaleOpen((o) => !o)}
@@ -74,7 +74,7 @@ export default function Navbar() {
               aria-haspopup="dialog"
             >
               <GlobeIcon className="size-4 shrink-0" aria-hidden />
-              <span className="hidden min-w-0 flex-1 truncate sm:inline">{localeSummary}</span>
+              <span className="hidden min-w-0 flex-1 truncate sm:inline font-sans">{localeSummary}</span>
               <ChevronDown
                 className={cn(
                   "size-4 shrink-0 text-white/80 transition-transform",

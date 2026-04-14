@@ -8,6 +8,7 @@ import {
   type TmdbVideo,
 } from "@/lib/tmdb/videoPicker";
 import type { UiLanguageCode, WatchRegionCode } from "@/lib/regionLanguagePrefs";
+import { getCuratedTrailers } from "@/lib/db/getCuratedTrailers";
 
 const DISCOVER_LIST_LANGUAGE = "en-US";
 const REVALIDATE_SEC = 900;
@@ -146,6 +147,7 @@ const EMPTY: HomeLatestTrailersByCategory = {
   Theatre: [],
   "OTT Series": [],
   "OTT Movies": [],
+  Upcoming: [],
 };
 
 export type HomeLatestTrailersPrefs = {
@@ -156,6 +158,11 @@ export type HomeLatestTrailersPrefs = {
 export async function getHomeLatestTrailersByCategory(
   prefs: HomeLatestTrailersPrefs
 ): Promise<HomeLatestTrailersByCategory> {
+  // Try admin-curated trailers first
+  const curated = await getCuratedTrailers();
+  if (curated) return curated;
+
+  // Fall back to TMDB API
   const apiKey = process.env.TMDB_API_KEY;
   if (!apiKey) return { ...EMPTY };
 
@@ -211,5 +218,6 @@ export async function getHomeLatestTrailersByCategory(
     Theatre: theatre,
     "OTT Series": ottSeries,
     "OTT Movies": ottMovies,
+    Upcoming: [],
   };
 }

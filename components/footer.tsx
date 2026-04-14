@@ -14,7 +14,7 @@ export default function Footer() {
       <div className="mx-auto flex max-w-[1600px] flex-col items-center gap-4 px-4 py-4 sm:flex-row sm:h-14 sm:gap-6 sm:py-0 sm:px-6">
         <Link
           href="/"
-          className="shrink-0 font-bold tracking-tight text-white text-lg sm:text-xl"
+          className="shrink-0 font-bold tracking-tight text-white text-lg sm:text-xl font-heading antialiased"
         >
           NextWatchList
         </Link>
@@ -24,7 +24,7 @@ export default function Footer() {
             <Link
               key={href}
               href={href}
-              className="text-sm font-medium text-white/90 transition-colors hover:text-white"
+              className="text-sm font-medium text-white/90 transition-colors hover:text-white font-sans"
             >
               {label}
             </Link>
@@ -34,21 +34,21 @@ export default function Footer() {
         <div className="flex items-center gap-4 text-white/90">
           <button
             type="button"
-            className="transition-colors hover:text-white"
+            className="transition-colors hover:text-white font-sans"
             aria-label="X (Twitter)"
           >
             <Twitter className="h-4 w-4" />
           </button>
           <button
             type="button"
-            className="transition-colors hover:text-white"
+            className="transition-colors hover:text-white font-sans"
             aria-label="Facebook"
           >
             <Facebook className="h-4 w-4" />
           </button>
           <button
             type="button"
-            className="transition-colors hover:text-white"
+            className="transition-colors hover:text-white font-sans"
             aria-label="Instagram"
           >
             <Instagram className="h-4 w-4" />

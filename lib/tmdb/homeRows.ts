@@ -3,6 +3,7 @@ import type { UiLanguageCode, WatchRegionCode } from "@/lib/regionLanguagePrefs"
 import { TMDB_API_V3_BASE, posterUrl } from "@/lib/tmdb/constants";
 import { originalLanguageForDiscover } from "@/lib/tmdb/discoverFilters";
 import { discoverAnyOttWatchProvidersParam } from "@/lib/tmdb/platforms";
+import { getCuratedHomeRows } from "@/lib/db/getCuratedHomeRows";
 
 const REVALIDATE_SEC = 900;
 const LIST_LANGUAGE = "en-US";
@@ -81,6 +82,13 @@ export async function getHomeRows(prefs: {
   watchRegion: WatchRegionCode;
   language: UiLanguageCode;
 }): Promise<HomeRows> {
+  // Try admin-curated data first
+  const curated = await getCuratedHomeRows();
+  if (curated) {
+    return { ...curated, anime: [] };
+  }
+
+  // Fall back to TMDB API
   const apiKey = process.env.TMDB_API_KEY;
   if (!apiKey) return { theatres: [], ottMovies: [], ottSeries: [], anime: [] };
 

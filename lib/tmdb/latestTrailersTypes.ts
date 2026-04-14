@@ -4,11 +4,12 @@ export type HomeTrailerCard = {
   date: string;
   image: string;
   youtubeKey: string;
-  detailHref: string;
+  detailHref?: string;
 };
 
 export type HomeLatestTrailersByCategory = {
   Theatre: HomeTrailerCard[];
   "OTT Series": HomeTrailerCard[];
   "OTT Movies": HomeTrailerCard[];
+  Upcoming: HomeTrailerCard[];
 };

@@ -28,7 +28,7 @@ export function LocaleMenuPopover({ onClose }: LocaleMenuPopoverProps) {
         <p className="text-[10px] font-semibold uppercase tracking-wider text-white/60">
           Region & language
         </p>
-        <p className="text-xs text-white/80">TMDB watch region and display language</p>
+        {/* <p className="text-xs text-white/80">TMDB watch region and display language</p> */}
       </div>
 
       <div className="max-h-[min(70vh,22rem)] overflow-y-auto p-3">

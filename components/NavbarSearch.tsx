@@ -91,14 +91,14 @@ function SuggestionRows({
 }) {
   if (isFetching) {
     return (
-      <p className="px-3 py-4 text-center text-sm text-white/55" role="status">
+      <p className="px-3 py-4 text-center text-sm text-white/55 font-sans" role="status">
         Searching…
       </p>
     );
   }
   if (isError && errorMessage) {
     return (
-      <p className="px-3 py-4 text-center text-sm text-amber-200/90" role="alert">
+      <p className="px-3 py-4 text-center text-sm text-amber-200/90 font-sans" role="alert">
         {errorMessage}
       </p>
     );
@@ -116,7 +116,7 @@ function SuggestionRows({
             <li key={`m-${m.id}`} className="border-b border-white/10 last:border-b-0">
               <Link
                 href={`/movies/${m.id}`}
-                className="flex items-center gap-3 px-3 py-2.5 text-left text-sm transition hover:bg-white/10"
+                className="flex items-center gap-3 px-3 py-2.5 text-left text-sm transition hover:bg-white/10 font-sans"
                 onClick={onPick}
               >
                 <Film className="size-5 shrink-0 text-white/70" aria-hidden />
@@ -131,7 +131,7 @@ function SuggestionRows({
             <li key={`t-${t.id}`} className="border-b border-white/10 last:border-b-0">
               <Link
                 href={`/tv-shows/${t.id}`}
-                className="flex items-center gap-3 px-3 py-2.5 text-left text-sm transition hover:bg-white/10"
+                className="flex items-center gap-3 px-3 py-2.5 text-left text-sm transition hover:bg-white/10 font-sans"
                 onClick={onPick}
               >
                 <Tv className="size-5 shrink-0 text-white/70" aria-hidden />
@@ -147,7 +147,7 @@ function SuggestionRows({
       <div className="border-t border-white/10 px-3 py-2">
         <Link
           href={seeAllHref}
-          className="block text-center text-sm font-medium text-[#F5C518] transition hover:text-[#ffd54f]"
+          className="block text-center text-sm font-medium text-[#F5C518] transition hover:text-[#ffd54f] font-sans"
           onClick={onPick}
         >
           See all results
@@ -255,13 +255,13 @@ export default function NavbarSearch() {
     query.error instanceof Error ? query.error.message : query.isError ? "Search failed." : null;
 
   const inputClassDesktop = cn(
-    "h-9 w-full rounded-full border-white/30 bg-red-500/50 pl-10 pr-3 text-white placeholder:text-white/70",
-    "focus-visible:border-white/50 focus-visible:ring-white/50"
+    "h-9 w-full rounded-full border-white/30 bg-red-500/50 pl-10 pr-3 text-white placeholder:text-white/70 font-sans",
+    "focus-visible:border-white/50 focus-visible:ring-white/50 font-sans"
   );
 
   const inputClassMobile = cn(
-    "h-11 w-full rounded-full border-white/25 bg-white/10 pl-10 pr-3 text-white placeholder:text-white/60",
-    "focus-visible:ring-white/40"
+    "h-11 w-full rounded-full border-white/25 bg-white/10 pl-10 pr-3 text-white placeholder:text-white/60 font-sans",
+    "focus-visible:ring-white/40 font-sans"
   );
 
   return (
@@ -383,7 +383,7 @@ export default function NavbarSearch() {
           </form>
           {enabled ? (
             <div
-              className="mt-3 flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-white/15 bg-black/30"
+              className="mt-3 flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-white/15 bg-black/30 font-sans"
               id={mobileListId}
               role="region"
               aria-label="Search suggestions"
@@ -398,12 +398,12 @@ export default function NavbarSearch() {
                 onPick={() => setMobileOpen(false)}
                 seeAllHref={seeAllHref}
               />
-              <p className="mt-auto border-t border-white/10 px-3 py-2 text-[10px] leading-snug text-white/45">
+              <p className="mt-auto border-t border-white/10 px-3 py-2 text-[10px] leading-snug text-white/45 font-sans">
                 This product uses the TMDB API but is not endorsed or certified by TMDB.
               </p>
             </div>
           ) : (
-            <p className="mt-6 text-center text-sm text-white/50">
+            <p className="mt-6 text-center text-sm text-white/50 font-sans">
               Type at least 2 characters to search.
             </p>
           )}
