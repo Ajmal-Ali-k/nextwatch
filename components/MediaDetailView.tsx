@@ -2,8 +2,7 @@ import Image from "next/image";
 import { Heart } from "lucide-react";
 
 import { DetailCreditsSection } from "@/components/DetailCreditsSection";
-import { DetailSectionHeading } from "@/components/DetailSectionHeading";
-import { MovieGallery } from "@/components/MovieGallery";
+import { MediaGallerySection } from "@/components/MediaGallerySection";
 import { MovieDetailWatchProviders } from "@/components/MovieDetailWatchProviders";
 import { MediaDetailWatchlistButton } from "@/components/MediaDetailWatchlistButton";
 import { MovieTrailerModal } from "@/components/MovieTrailerModal";
@@ -127,12 +126,12 @@ export default function MediaDetailView({ model }: { model: MediaDetailPresentat
 
             <DetailCreditsSection cast={model.cast} crew={model.crew} />
 
-            {model.gallery.length > 0 ? (
-              <div className="mt-12 border-t border-white/10 pt-10" id="gallery">
-                <DetailSectionHeading className="mb-6">Gallery</DetailSectionHeading>
-                <MovieGallery images={model.gallery} />
-              </div>
-            ) : null}
+            <MediaGallerySection
+              videos={model.videos}
+              backdrops={model.backdrops}
+              posters={model.posters}
+              mediaTitle={model.title}
+            />
 
             {/* <p className="mt-8 text-[10px] leading-snug text-white/40">
               This product uses the TMDB API but is not endorsed or certified by TMDB.{" "}

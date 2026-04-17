@@ -26,6 +26,14 @@ function backdropGalleryUrl(path: string | null): string | null {
   return `${TMDB_IMAGE_BASE}/w780${p}`;
 }
 
+function posterGalleryUrl(path: string | null): string | null {
+  const p = typeof path === "string" ? path.trim() : "";
+  if (!p) return null;
+  return `${TMDB_IMAGE_BASE}/w500${p}`;
+}
+
+type VideoEntry = { key: string; name: string; type: string };
+
 type TmdbCastMember = {
   name?: string;
   character?: string;
@@ -49,7 +57,7 @@ type TmdbMovieListResult = {
   poster_path?: string | null;
 };
 
-type TmdbBackdrop = {
+type TmdbImageEntry = {
   file_path?: string;
 };
 
@@ -65,7 +73,7 @@ type TmdbMovieDetailAppended = {
   genres?: TmdbGenre[];
   credits?: { cast?: TmdbCastMember[]; crew?: TmdbCrewMember[] };
   videos?: { results?: TmdbVideo[] };
-  images?: { backdrops?: TmdbBackdrop[] };
+  images?: { backdrops?: TmdbImageEntry[]; posters?: TmdbImageEntry[] };
   recommendations?: { results?: TmdbMovieListResult[] };
   similar?: { results?: TmdbMovieListResult[] };
 };
@@ -140,7 +148,9 @@ export type MovieDetailPageData = {
   cast: DetailCreditPerson[];
   crew: DetailCreditPerson[];
   trailerYoutubeKey: string | null;
-  gallery: { src: string }[];
+  videos: VideoEntry[];
+  backdrops: { src: string }[];
+  posters: { src: string }[];
   recommended: MovieDetailRecommended[];
 };
 
@@ -195,12 +205,25 @@ export async function loadMovieDetail(
 
   const trailerYoutubeKey = pickYoutubeTrailer(data.videos?.results);
 
-  const backdrops = data.images?.backdrops ?? [];
-  const gallery: { src: string }[] = [];
-  for (const b of backdrops) {
-    if (gallery.length >= 6) break;
+  const videos: VideoEntry[] = [];
+  for (const v of data.videos?.results ?? []) {
+    if (videos.length >= 20) break;
+    if (v.site !== "YouTube" || !v.key) continue;
+    videos.push({ key: v.key, name: v.type ? `${v.type}: ${v.key}` : v.key, type: v.type ?? "" });
+  }
+
+  const backdropEntries: { src: string }[] = [];
+  for (const b of data.images?.backdrops ?? []) {
+    if (backdropEntries.length >= 20) break;
     const src = backdropGalleryUrl(b.file_path ?? null);
-    if (src) gallery.push({ src });
+    if (src) backdropEntries.push({ src });
+  }
+
+  const posterEntries: { src: string }[] = [];
+  for (const p of data.images?.posters ?? []) {
+    if (posterEntries.length >= 20) break;
+    const src = posterGalleryUrl(p.file_path ?? null);
+    if (src) posterEntries.push({ src });
   }
 
   const fromRecommendations = normalizeRecommendedMovies(
@@ -232,7 +255,9 @@ export async function loadMovieDetail(
     cast,
     crew,
     trailerYoutubeKey,
-    gallery,
+    videos,
+    backdrops: backdropEntries,
+    posters: posterEntries,
     recommended,
   };
 }

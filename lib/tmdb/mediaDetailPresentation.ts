@@ -3,6 +3,7 @@ import type { MovieDetailPageData } from "@/lib/tmdb/movieDetail";
 import type { TvDetailPageData } from "@/lib/tmdb/tvDetail";
 
 export type MediaDetailGalleryImage = { src: string };
+export type MediaDetailVideo = { key: string; name: string; type: string };
 
 export type MediaDetailRecommended = {
   id: number;
@@ -32,7 +33,9 @@ export type MediaDetailPresentation = {
   trailerYoutubeKey: string | null;
   cast: DetailCreditPerson[];
   crew: DetailCreditPerson[];
-  gallery: MediaDetailGalleryImage[];
+  videos: MediaDetailVideo[];
+  backdrops: MediaDetailGalleryImage[];
+  posters: MediaDetailGalleryImage[];
   recommended: MediaDetailRecommended[];
 };
 
@@ -54,7 +57,9 @@ export function movieToMediaPresentation(data: MovieDetailPageData): MediaDetail
     trailerYoutubeKey: data.trailerYoutubeKey,
     cast: data.cast,
     crew: data.crew,
-    gallery: data.gallery,
+    videos: data.videos,
+    backdrops: data.backdrops,
+    posters: data.posters,
     recommended: data.recommended.map((m) => ({
       id: m.id,
       title: m.title,
@@ -84,7 +89,9 @@ export function tvToMediaPresentation(data: TvDetailPageData): MediaDetailPresen
     trailerYoutubeKey: data.trailerYoutubeKey,
     cast: data.cast,
     crew: data.crew,
-    gallery: data.gallery,
+    videos: data.videos,
+    backdrops: data.backdrops,
+    posters: data.posters,
     recommended: data.recommended.map((m) => ({
       id: m.id,
       title: m.title,
