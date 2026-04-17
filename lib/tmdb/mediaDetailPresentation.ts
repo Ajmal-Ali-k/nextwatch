@@ -1,6 +1,6 @@
 import type { DetailCreditPerson } from "@/lib/tmdb/detailCredits";
 import type { MovieDetailPageData } from "@/lib/tmdb/movieDetail";
-import type { TvDetailPageData } from "@/lib/tmdb/tvDetail";
+import type { TvDetailPageData, TvSeason } from "@/lib/tmdb/tvDetail";
 
 export type MediaDetailGalleryImage = { src: string };
 export type MediaDetailVideo = { key: string; name: string; type: string };
@@ -36,6 +36,7 @@ export type MediaDetailPresentation = {
   videos: MediaDetailVideo[];
   backdrops: MediaDetailGalleryImage[];
   posters: MediaDetailGalleryImage[];
+  seasons: TvSeason[];
   recommended: MediaDetailRecommended[];
 };
 
@@ -60,6 +61,7 @@ export function movieToMediaPresentation(data: MovieDetailPageData): MediaDetail
     videos: data.videos,
     backdrops: data.backdrops,
     posters: data.posters,
+    seasons: [],
     recommended: data.recommended.map((m) => ({
       id: m.id,
       title: m.title,
@@ -92,6 +94,7 @@ export function tvToMediaPresentation(data: TvDetailPageData): MediaDetailPresen
     videos: data.videos,
     backdrops: data.backdrops,
     posters: data.posters,
+    seasons: data.seasons,
     recommended: data.recommended.map((m) => ({
       id: m.id,
       title: m.title,

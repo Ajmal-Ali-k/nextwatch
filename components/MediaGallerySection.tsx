@@ -1,13 +1,17 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
-import { Play } from "lucide-react";
+import { useCallback, useState } from "react";
+import { ChevronLeft, ChevronRight, Play } from "lucide-react";
+import type { Swiper as SwiperType } from "swiper";
+import { Swiper, SwiperSlide } from "swiper/react";
 
 import { DetailSectionHeading } from "@/components/DetailSectionHeading";
 import { MediaLightboxModal } from "@/components/MediaLightboxModal";
 import { cn } from "@/lib/utils";
 import type { MediaDetailGalleryImage, MediaDetailVideo } from "@/lib/tmdb/mediaDetailPresentation";
+
+import "swiper/css";
 
 type TabKey = "videos" | "backdrops" | "posters";
 
@@ -29,6 +33,64 @@ function youtubeThumb(key: string): string {
   return `https://img.youtube.com/vi/${key}/mqdefault.jpg`;
 }
 
+function updateEdges(s: SwiperType) {
+  return { start: s.isBeginning, end: s.isEnd };
+}
+
+const SWIPER_THRESHOLD = 4;
+
+const landscapeBreakpoints = {
+  640: { slidesPerView: 2, slidesPerGroup: 2 },
+  1024: { slidesPerView: 3, slidesPerGroup: 3 },
+  1200: { slidesPerView: 4, slidesPerGroup: 4 },
+};
+
+const posterBreakpoints = {
+  480: { slidesPerView: 3, slidesPerGroup: 3 },
+  640: { slidesPerView: 4, slidesPerGroup: 4 },
+  1024: { slidesPerView: 5, slidesPerGroup: 5 },
+  1200: { slidesPerView: 6, slidesPerGroup: 6 },
+};
+
+function SwiperNav({
+  swiper,
+  edges,
+}: {
+  swiper: SwiperType | null;
+  edges: { start: boolean; end: boolean };
+}) {
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => swiper?.slidePrev()}
+        disabled={edges.start}
+        aria-label="Previous"
+        className={cn(
+          "absolute left-0 top-1/2 z-10 flex size-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/25 bg-black/60 text-white shadow-lg backdrop-blur-sm transition",
+          "hover:border-white/45 hover:bg-black/75",
+          "disabled:pointer-events-none disabled:opacity-30"
+        )}
+      >
+        <ChevronLeft className="size-6" aria-hidden />
+      </button>
+      <button
+        type="button"
+        onClick={() => swiper?.slideNext()}
+        disabled={edges.end}
+        aria-label="Next"
+        className={cn(
+          "absolute right-0 top-1/2 z-10 flex size-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/25 bg-black/60 text-white shadow-lg backdrop-blur-sm transition",
+          "hover:border-white/45 hover:bg-black/75",
+          "disabled:pointer-events-none disabled:opacity-30"
+        )}
+      >
+        <ChevronRight className="size-6" aria-hidden />
+      </button>
+    </>
+  );
+}
+
 export function MediaGallerySection({
   videos,
   backdrops,
@@ -45,9 +107,61 @@ export function MediaGallerySection({
   const [activeTab, setActiveTab] = useState<TabKey>(tabs[0]?.key ?? "backdrops");
   const [lightbox, setLightbox] = useState<LightboxState>({ open: false });
 
+  const [videoSwiper, setVideoSwiper] = useState<SwiperType | null>(null);
+  const [videoEdges, setVideoEdges] = useState({ start: true, end: false });
+  const onVideoSwiper = useCallback((s: SwiperType) => { setVideoSwiper(s); setVideoEdges(updateEdges(s)); }, []);
+  const onVideoSlide = useCallback((s: SwiperType) => { setVideoEdges(updateEdges(s)); }, []);
+
+  const [bdSwiper, setBdSwiper] = useState<SwiperType | null>(null);
+  const [bdEdges, setBdEdges] = useState({ start: true, end: false });
+  const onBdSwiper = useCallback((s: SwiperType) => { setBdSwiper(s); setBdEdges(updateEdges(s)); }, []);
+  const onBdSlide = useCallback((s: SwiperType) => { setBdEdges(updateEdges(s)); }, []);
+
+  const [posterSwiper, setPosterSwiper] = useState<SwiperType | null>(null);
+  const [posterEdges, setPosterEdges] = useState({ start: true, end: false });
+  const onPosterSwiper = useCallback((s: SwiperType) => { setPosterSwiper(s); setPosterEdges(updateEdges(s)); }, []);
+  const onPosterSlide = useCallback((s: SwiperType) => { setPosterEdges(updateEdges(s)); }, []);
+
   if (tabs.length === 0) return null;
 
   const closeLightbox = () => setLightbox({ open: false });
+
+  const useVideoSwiper = videos.length > SWIPER_THRESHOLD;
+  const useBdSwiper = backdrops.length > SWIPER_THRESHOLD;
+  const usePosterSwiper = posters.length > SWIPER_THRESHOLD;
+
+  /* ── Video thumbnail (shared between grid + swiper) ── */
+  const videoThumb = (v: MediaDetailVideo) => (
+    <button
+      key={v.key}
+      type="button"
+      onClick={() =>
+        setLightbox({
+          open: true,
+          mode: "video",
+          youtubeKey: v.key,
+          title: `${mediaTitle} — ${v.type}`,
+        })
+      }
+      className="group relative aspect-video w-full overflow-hidden rounded-lg bg-white/5"
+    >
+      <Image
+        src={youtubeThumb(v.key)}
+        alt={v.type}
+        fill
+        className="object-cover transition duration-300 group-hover:scale-105"
+        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+      />
+      <div className="absolute inset-0 flex items-center justify-center bg-black/30 transition group-hover:bg-black/40">
+        <div className="flex size-10 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm">
+          <Play className="size-5 fill-white text-white" />
+        </div>
+      </div>
+      <span className="absolute bottom-1.5 left-2 text-[11px] font-medium text-white/80 drop-shadow">
+        {v.type}
+      </span>
+    </button>
+  );
 
   return (
     <div className="mt-12 border-t border-white/10 pt-10" id="media">
@@ -76,89 +190,157 @@ export function MediaGallerySection({
         ))}
       </div>
 
-      {/* Videos grid */}
+      {/* Videos */}
       {activeTab === "videos" ? (
-        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {videos.map((v) => (
-            <button
-              key={v.key}
-              type="button"
-              onClick={() =>
-                setLightbox({
-                  open: true,
-                  mode: "video",
-                  youtubeKey: v.key,
-                  title: `${mediaTitle} — ${v.type}`,
-                })
-              }
-              className="group relative aspect-video overflow-hidden rounded-lg bg-white/5"
+        useVideoSwiper ? (
+          <div className="relative mt-6">
+            <SwiperNav swiper={videoSwiper} edges={videoEdges} />
+            <Swiper
+              className="pl-0! pr-12! pb-2 max-sm:pr-10!"
+              spaceBetween={12}
+              slidesPerView={1}
+              slidesPerGroup={1}
+              watchOverflow
+              breakpoints={landscapeBreakpoints}
+              onSwiper={onVideoSwiper}
+              onSlideChange={onVideoSlide}
+              onBreakpoint={(s) => setVideoEdges(updateEdges(s))}
+              onResize={(s) => setVideoEdges(updateEdges(s))}
             >
-              <Image
-                src={youtubeThumb(v.key)}
-                alt={v.type}
-                fill
-                className="object-cover transition duration-300 group-hover:scale-105"
-                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-              />
-              <div className="absolute inset-0 flex items-center justify-center bg-black/30 transition group-hover:bg-black/40">
-                <div className="flex size-10 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm">
-                  <Play className="size-5 fill-white text-white" />
-                </div>
-              </div>
-              <span className="absolute bottom-1.5 left-2 text-[11px] font-medium text-white/80 drop-shadow">
-                {v.type}
-              </span>
-            </button>
-          ))}
-        </div>
+              {videos.map((v) => (
+                <SwiperSlide key={v.key}>{videoThumb(v)}</SwiperSlide>
+              ))}
+            </Swiper>
+          </div>
+        ) : (
+          <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            {videos.map((v) => videoThumb(v))}
+          </div>
+        )
       ) : null}
 
-      {/* Backdrops grid */}
+      {/* Backdrops */}
       {activeTab === "backdrops" ? (
-        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {backdrops.map((img, i) => (
-            <button
-              key={img.src}
-              type="button"
-              onClick={() =>
-                setLightbox({ open: true, mode: "image", tab: "backdrops", index: i })
-              }
-              className="group relative aspect-video overflow-hidden rounded-lg bg-white/5"
+        useBdSwiper ? (
+          <div className="relative mt-6">
+            <SwiperNav swiper={bdSwiper} edges={bdEdges} />
+            <Swiper
+              className="pl-0! pr-12! pb-2 max-sm:pr-10!"
+              spaceBetween={12}
+              slidesPerView={1}
+              slidesPerGroup={1}
+              watchOverflow
+              breakpoints={landscapeBreakpoints}
+              onSwiper={onBdSwiper}
+              onSlideChange={onBdSlide}
+              onBreakpoint={(s) => setBdEdges(updateEdges(s))}
+              onResize={(s) => setBdEdges(updateEdges(s))}
             >
-              <Image
-                src={img.src}
-                alt=""
-                fill
-                className="object-cover transition duration-300 group-hover:scale-105"
-                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-              />
-            </button>
-          ))}
-        </div>
+              {backdrops.map((img, i) => (
+                <SwiperSlide key={img.src}>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setLightbox({ open: true, mode: "image", tab: "backdrops", index: i })
+                    }
+                    className="group relative aspect-video w-full overflow-hidden rounded-lg bg-white/5"
+                  >
+                    <Image
+                      src={img.src}
+                      alt=""
+                      fill
+                      className="object-cover transition duration-300 group-hover:scale-105"
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                    />
+                  </button>
+                </SwiperSlide>
+              ))}
+            </Swiper>
+          </div>
+        ) : (
+          <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            {backdrops.map((img, i) => (
+              <button
+                key={img.src}
+                type="button"
+                onClick={() =>
+                  setLightbox({ open: true, mode: "image", tab: "backdrops", index: i })
+                }
+                className="group relative aspect-video overflow-hidden rounded-lg bg-white/5"
+              >
+                <Image
+                  src={img.src}
+                  alt=""
+                  fill
+                  className="object-cover transition duration-300 group-hover:scale-105"
+                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                />
+              </button>
+            ))}
+          </div>
+        )
       ) : null}
 
-      {/* Posters grid */}
+      {/* Posters */}
       {activeTab === "posters" ? (
-        <div className="mt-6 grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
-          {posters.map((img, i) => (
-            <button
-              key={img.src}
-              type="button"
-              onClick={() =>
-                setLightbox({ open: true, mode: "image", tab: "posters", index: i })
-              }
-              className="group relative aspect-2/3 overflow-hidden rounded-lg bg-white/5"
+        usePosterSwiper ? (
+          <div className="relative mt-6">
+            <SwiperNav swiper={posterSwiper} edges={posterEdges} />
+            <Swiper
+              className="pl-0! pr-12! pb-2 max-sm:pr-10!"
+              spaceBetween={12}
+              slidesPerView={2}
+              slidesPerGroup={2}
+              watchOverflow
+              breakpoints={posterBreakpoints}
+              onSwiper={onPosterSwiper}
+              onSlideChange={onPosterSlide}
+              onBreakpoint={(s) => setPosterEdges(updateEdges(s))}
+              onResize={(s) => setPosterEdges(updateEdges(s))}
             >
-              <Image
-                src={img.src}
-                alt=""
-                fill
-                className="object-cover transition duration-300 group-hover:scale-105"
-                sizes="(max-width: 640px) 33vw, (max-width: 1024px) 25vw, 16vw"
-              />
-            </button>
-          ))}
-        </div>
+              {posters.map((img, i) => (
+                <SwiperSlide key={img.src}>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setLightbox({ open: true, mode: "image", tab: "posters", index: i })
+                    }
+                    className="group relative aspect-2/3 w-full overflow-hidden rounded-lg bg-white/5"
+                  >
+                    <Image
+                      src={img.src}
+                      alt=""
+                      fill
+                      className="object-cover transition duration-300 group-hover:scale-105"
+                      sizes="(max-width: 480px) 50vw, (max-width: 640px) 33vw, (max-width: 1024px) 25vw, 16vw"
+                    />
+                  </button>
+                </SwiperSlide>
+              ))}
+            </Swiper>
+          </div>
+        ) : (
+          <div className="mt-6 grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
+            {posters.map((img, i) => (
+              <button
+                key={img.src}
+                type="button"
+                onClick={() =>
+                  setLightbox({ open: true, mode: "image", tab: "posters", index: i })
+                }
+                className="group relative aspect-2/3 overflow-hidden rounded-lg bg-white/5"
+              >
+                <Image
+                  src={img.src}
+                  alt=""
+                  fill
+                  className="object-cover transition duration-300 group-hover:scale-105"
+                  sizes="(max-width: 640px) 33vw, (max-width: 1024px) 25vw, 16vw"
+                />
+              </button>
+            ))}
+          </div>
+        )
       ) : null}
 
       {/* Lightbox */}

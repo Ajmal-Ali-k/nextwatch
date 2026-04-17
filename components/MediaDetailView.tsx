@@ -7,6 +7,7 @@ import { MovieDetailWatchProviders } from "@/components/MovieDetailWatchProvider
 import { MediaDetailWatchlistButton } from "@/components/MediaDetailWatchlistButton";
 import { MovieTrailerModal } from "@/components/MovieTrailerModal";
 import MoviesRow, { type Movie } from "@/components/MoviesRow";
+import { TvSeasonsSection } from "@/components/TvSeasonsSection";
 import type { MediaDetailPresentation } from "@/lib/tmdb/mediaDetailPresentation";
 
 export default function MediaDetailView({ model }: { model: MediaDetailPresentation }) {
@@ -15,13 +16,13 @@ export default function MediaDetailView({ model }: { model: MediaDetailPresentat
   return (
     <div className="text-white">
       <section className="relative min-h-screen">
-        <div className="absolute inset-0">
+        <div className="absolute inset-x-0 top-0 h-screen">
           {model.backdropUrl ? (
             <Image
               src={model.backdropUrl}
               alt=""
               fill
-              className="object-cover object-center"
+              className="object-cover object-top"
               priority
               quality={90}
               sizes="100vw"
@@ -132,6 +133,10 @@ export default function MediaDetailView({ model }: { model: MediaDetailPresentat
               posters={model.posters}
               mediaTitle={model.title}
             />
+
+            {model.kind === "tv" && model.seasons.length > 1 ? (
+              <TvSeasonsSection seasons={model.seasons} />
+            ) : null}
 
             {/* <p className="mt-8 text-[10px] leading-snug text-white/40">
               This product uses the TMDB API but is not endorsed or certified by TMDB.{" "}
