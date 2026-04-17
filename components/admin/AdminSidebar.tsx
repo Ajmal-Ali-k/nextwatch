@@ -9,6 +9,7 @@ import {
   Clapperboard,
   LogOut,
   Play,
+  ImageIcon,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -24,6 +25,12 @@ const NAV_GROUPS: NavGroup[] = [
     label: "",
     items: [
       { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
+    ],
+  },
+  {
+    label: "Hero",
+    items: [
+      { href: "/admin/hero", label: "Hero Banner", icon: ImageIcon },
     ],
   },
   {

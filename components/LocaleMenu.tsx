@@ -20,19 +20,19 @@ export function LocaleMenuPopover({ onClose }: LocaleMenuPopoverProps) {
 
   return (
     <div
-      className="absolute right-0 top-full z-60 mt-2 w-[min(100vw-2rem,18.5rem)] overflow-hidden rounded-xl border border-white/25 bg-red-950/95 shadow-xl shadow-black/40 ring-1 ring-black/30 backdrop-blur-md"
+      className="absolute right-0 top-full z-60 mt-2 w-[min(100vw-2rem,18.5rem)] overflow-hidden rounded-xl border border-white/25 bg-red-950/95 shadow-xl shadow-black/40 ring-1 ring-black/30 backdrop-blur-md font-sans text-base tracking-normal"
       role="dialog"
       aria-label="Region and language"
     >
       <div className="border-b border-white/10 bg-red-900/40 px-3 py-2">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-white/60">
+        <p className="text-[10px] font-semibold uppercase  text-white/60 font-sans">
           Region & language
         </p>
         {/* <p className="text-xs text-white/80">TMDB watch region and display language</p> */}
       </div>
 
       <div className="max-h-[min(70vh,22rem)] overflow-y-auto p-3">
-        <p className="text-xs font-medium text-white/65" id="locale-region-heading">
+        <p className="text-xs font-medium text-white/65 font-sans" id="locale-region-heading">
           Country / region
         </p>
         <div
@@ -56,8 +56,8 @@ export function LocaleMenuPopover({ onClose }: LocaleMenuPopoverProps) {
                     : "border-white/15 bg-white/5 text-white/90 hover:border-white/30 hover:bg-white/10"
                 )}
               >
-                <span className="font-medium">{r.label}</span>
-                <span className="mt-0.5 block text-[11px] text-white/55">{r.code}</span>
+                <span className="font-medium font-sans">{r.label}</span>
+                <span className="mt-0.5 block text-[11px] text-white/55 font-sans">{r.code}</span>
               </button>
             );
           })}

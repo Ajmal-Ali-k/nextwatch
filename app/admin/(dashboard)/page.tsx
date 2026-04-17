@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Film, Tv, Clapperboard, Play, type LucideIcon } from "lucide-react";
+import { Film, Tv, Clapperboard, Play, ImageIcon, type LucideIcon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getDb } from "@/lib/db/mongodb";
 import {
@@ -12,6 +12,10 @@ import {
   TRAILER_SECTIONS_COLLECTION,
   TRAILER_SLUGS,
 } from "@/lib/db/trailerSection";
+import {
+  HERO_SLIDES_COLLECTION,
+  HERO_SLUG,
+} from "@/lib/db/heroSection";
 
 export const dynamic = "force-dynamic";
 
@@ -31,12 +35,13 @@ type SummaryCard = {
 };
 
 async function getSummaries(): Promise<{
+  heroCard: SummaryCard;
   sections: SummaryCard[];
   trailerCard: SummaryCard;
 }> {
   try {
     const db = await getDb();
-    const [sectionDocs, trailerDocs] = await Promise.all([
+    const [sectionDocs, trailerDocs, heroDoc] = await Promise.all([
       db
         .collection(HOME_SECTIONS_COLLECTION)
         .find({ slug: { $in: [...SECTION_SLUGS] } })
@@ -45,6 +50,9 @@ async function getSummaries(): Promise<{
         .collection(TRAILER_SECTIONS_COLLECTION)
         .find({ slug: { $in: [...TRAILER_SLUGS] } })
         .toArray(),
+      db
+        .collection(HERO_SLIDES_COLLECTION)
+        .findOne({ slug: HERO_SLUG }),
     ]);
 
     const sectionMap = new Map(sectionDocs.map((d) => [d.slug as string, d]));
@@ -87,7 +95,20 @@ async function getSummaries(): Promise<{
       icon: Play,
     };
 
-    return { sections, trailerCard };
+    // Hero banner card
+    const heroItems = Array.isArray(heroDoc?.items) ? heroDoc.items : [];
+    const heroCard: SummaryCard = {
+      slug: "hero",
+      title: "Hero Banner",
+      itemCount: heroItems.length,
+      updatedAt: heroDoc?.updatedAt
+        ? new Date(heroDoc.updatedAt).toLocaleDateString()
+        : "Never",
+      href: "/admin/hero",
+      icon: ImageIcon,
+    };
+
+    return { heroCard, sections, trailerCard };
   } catch {
     const sections: SummaryCard[] = SECTION_SLUGS.map((slug) => ({
       slug,
@@ -105,7 +126,15 @@ async function getSummaries(): Promise<{
       href: "/admin/trailers",
       icon: Play,
     };
-    return { sections, trailerCard };
+    const heroCard: SummaryCard = {
+      slug: "hero",
+      title: "Hero Banner",
+      itemCount: 0,
+      updatedAt: "Unavailable",
+      href: "/admin/hero",
+      icon: ImageIcon,
+    };
+    return { heroCard, sections, trailerCard };
   }
 }
 
@@ -137,7 +166,7 @@ function SummaryGrid({ cards }: { cards: SummaryCard[] }) {
 }
 
 export default async function AdminDashboardPage() {
-  const { sections, trailerCard } = await getSummaries();
+  const { heroCard, sections, trailerCard } = await getSummaries();
 
   return (
     <div className="space-y-8">
@@ -146,6 +175,13 @@ export default async function AdminDashboardPage() {
         <p className="text-sm text-gray-500">
           Manage curated home page sections and trailers
         </p>
+      </div>
+
+      <div className="space-y-2">
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-400">
+          Hero Banner
+        </h2>
+        <SummaryGrid cards={[heroCard]} />
       </div>
 
       <div className="space-y-2">

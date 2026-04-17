@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { TMDB_API_V3_BASE, posterUrl } from "@/lib/tmdb/constants";
 import { originalLanguageForDiscover } from "@/lib/tmdb/discoverFilters";
+import { discoverAnyOttWatchProvidersParam } from "@/lib/tmdb/platforms";
 import { parseTvDiscoverSort } from "@/lib/tmdb/tvDiscoverSort";
 import type {
   NormalizedDiscoverTvShow,
@@ -38,7 +39,9 @@ function buildDiscoverTvUrl(
   tmdbPage: number,
   withOriginalLanguage: string | undefined,
   sortBy: string,
-  withGenres: string | undefined
+  withGenres: string | undefined,
+  airDateGte: string | undefined,
+  airDateLte: string | undefined
 ): string {
   const url = new URL(`${TMDB_API_V3_BASE}/discover/tv`);
   url.searchParams.set("api_key", apiKey);
@@ -56,6 +59,12 @@ function buildDiscoverTvUrl(
   if (providerId) {
     url.searchParams.set("with_watch_providers", providerId);
     url.searchParams.set("with_watch_monetization_types", "flatrate|rent|buy");
+  }
+  if (airDateGte) {
+    url.searchParams.set("first_air_date.gte", airDateGte);
+  }
+  if (airDateLte) {
+    url.searchParams.set("first_air_date.lte", airDateLte);
   }
   return url.toString();
 }
@@ -88,6 +97,8 @@ export async function GET(request: Request) {
   }
 
   const sortBy = parseTvDiscoverSort(searchParams.get("sortBy"));
+  const airDateGte = searchParams.get("airDateGte") ?? undefined;
+  const airDateLte = searchParams.get("airDateLte") ?? undefined;
 
   let genreIdStr: string | undefined;
   const genreIdParam = searchParams.get("genreId");
@@ -106,6 +117,8 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Invalid providerId" }, { status: 400 });
     }
     providerId = String(n);
+  } else {
+    providerId = discoverAnyOttWatchProvidersParam(watchRegionRaw);
   }
 
   const offset = (displayPage - 1) * RESULTS_PER_VIEW;
@@ -136,7 +149,9 @@ export async function GET(request: Request) {
       tmdbPage,
       withOriginalLanguage,
       sortBy,
-      genreIdStr
+      genreIdStr,
+      airDateGte,
+      airDateLte
     );
     const res = await fetch(url, fetchOptions);
 

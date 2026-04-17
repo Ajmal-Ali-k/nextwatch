@@ -2,9 +2,12 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useRegionLanguage } from "@/components/RegionLanguageProvider";
+import { ChevronDown } from "lucide-react";
+import { LocaleMenuPopover } from "@/components/LocaleMenu";
+import { WATCH_REGIONS, useRegionLanguage } from "@/components/RegionLanguageProvider";
+import { cn } from "@/lib/utils";
 
 type TabKey = "In Theatres" | "Movies on OTT" | "TV Series on OTT";
 
@@ -14,6 +17,7 @@ type CalendarMovie = {
   title: string;
   date: string;
   image: string | null;
+  overview: string;
 };
 
 const tabs: TabKey[] = ["In Theatres", "Movies on OTT", "TV Series on OTT"];
@@ -24,6 +28,7 @@ type MoviesApiJson = {
     title: string;
     releaseDate: string;
     posterUrl: string | null;
+    overview: string;
   }[];
 };
 
@@ -33,17 +38,28 @@ type TvApiJson = {
     title: string;
     firstAirDate: string;
     posterUrl: string | null;
+    overview: string;
   }[];
 };
+
+function regionLabel(code: string): string {
+  return WATCH_REGIONS.find((r) => r.code === code)?.label ?? code;
+}
 
 function formatDayLabel(iso: string): string {
   const d = new Date(`${iso}T12:00:00`);
   if (Number.isNaN(d.getTime())) return iso;
   return d.toLocaleDateString(undefined, {
     year: "numeric",
-    month: "long",
-    day: "numeric",
+    month: "short",
+    day: "2-digit",
   });
+}
+
+function releaseYear(iso: string): string {
+  const d = new Date(`${iso}T12:00:00`);
+  if (Number.isNaN(d.getTime())) return "";
+  return `(${d.getFullYear()})`;
 }
 
 function toSections(items: CalendarMovie[]) {
@@ -58,7 +74,7 @@ function toSections(items: CalendarMovie[]) {
   const sorted = [...grouped.entries()].sort(([a], [b]) => {
     if (a === "TBA") return 1;
     if (b === "TBA") return -1;
-    return b.localeCompare(a);
+    return a.localeCompare(b);
   });
 
   return sorted.map(([dateKey, movies]) => ({
@@ -77,20 +93,33 @@ function isWithinNextMonths(iso: string, months: number): boolean {
   return d >= now && d <= maxFuture;
 }
 
-function isWithinWindow(iso: string, pastMonths: number, futureMonths: number): boolean {
-  if (!iso || iso === "—") return false;
-  const d = new Date(`${iso}T12:00:00`);
-  if (Number.isNaN(d.getTime())) return false;
-  const minDate = new Date();
-  minDate.setMonth(minDate.getMonth() - pastMonths);
-  const maxDate = new Date();
-  maxDate.setMonth(maxDate.getMonth() + futureMonths);
-  return d >= minDate && d <= maxDate;
+function toIsoDate(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+
+function dateRange(pastMonths: number, futureMonths: number): { gte: string; lte: string } {
+  const min = new Date();
+  min.setMonth(min.getMonth() - pastMonths);
+  const max = new Date();
+  max.setMonth(max.getMonth() + futureMonths);
+  return { gte: toIsoDate(min), lte: toIsoDate(max) };
 }
 
 export default function ReleaseCalendarPage() {
   const [activeTab, setActiveTab] = useState<TabKey>("In Theatres");
+  const [localeOpen, setLocaleOpen] = useState(false);
+  const localeRef = useRef<HTMLDivElement>(null);
   const { watchRegion, language } = useRegionLanguage();
+
+  useEffect(() => {
+    function handlePointerDown(event: MouseEvent) {
+      if (!localeRef.current?.contains(event.target as Node)) {
+        setLocaleOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, []);
 
   const calendarQuery = useQuery<CalendarMovie[]>({
     queryKey: ["calendar-page", activeTab, watchRegion, language],
@@ -122,52 +151,57 @@ export default function ReleaseCalendarPage() {
             title: m.title,
             date: m.releaseDate,
             image: m.posterUrl,
+            overview: m.overview,
           }));
       }
 
       if (activeTab === "Movies on OTT") {
+        const { gte, lte } = dateRange(1, 2);
         const params = new URLSearchParams({
           watchRegion,
           language,
           sortBy: "primary_release_date.desc",
           page: "1",
+          releaseDateGte: gte,
+          releaseDateLte: lte,
         });
         const res = await fetch(`/api/movies/discover?${params.toString()}`, {
           cache: "no-store",
         });
         if (!res.ok) throw new Error("Failed to load OTT movies");
         const data = (await res.json()) as MoviesApiJson;
-        return data.results
-          .filter((m) => isWithinWindow(m.releaseDate, 24, 2))
-          .map((m) => ({
-            id: m.id,
-            kind: "movie" as const,
-            title: m.title,
-            date: m.releaseDate,
-            image: m.posterUrl,
-          }));
+        return data.results.map((m) => ({
+          id: m.id,
+          kind: "movie" as const,
+          title: m.title,
+          date: m.releaseDate,
+          image: m.posterUrl,
+          overview: m.overview,
+        }));
       }
 
+      const { gte, lte } = dateRange(1, 2);
       const params = new URLSearchParams({
         watchRegion,
         language,
         sortBy: "first_air_date.desc",
         page: "1",
+        airDateGte: gte,
+        airDateLte: lte,
       });
       const res = await fetch(`/api/tv/discover?${params.toString()}`, {
         cache: "no-store",
       });
       if (!res.ok) throw new Error("Failed to load OTT TV series");
       const data = (await res.json()) as TvApiJson;
-      return data.results
-        .filter((s) => isWithinWindow(s.firstAirDate, 24, 2))
-        .map((s) => ({
-          id: s.id,
-          kind: "tv" as const,
-          title: s.title,
-          date: s.firstAirDate,
-          image: s.posterUrl,
-        }));
+      return data.results.map((s) => ({
+        id: s.id,
+        kind: "tv" as const,
+        title: s.title,
+        date: s.firstAirDate,
+        image: s.posterUrl,
+        overview: s.overview,
+      }));
     },
   });
 
@@ -187,44 +221,55 @@ export default function ReleaseCalendarPage() {
       <div className="mx-auto container">
         {/* Header */}
         <div className="mt-2 px-4 sm:px-6 lg:px-0">
-          <div className="flex max-w-4xl flex-col gap-4">
-            <h1 className="font-(family-name:--font-anton) text-4xl sm:text-5xl uppercase tracking-tight">
-              Release Calendar
-            </h1>
-
-            <div className="flex flex-wrap items-center gap-3">
-              {/* segmented tabs */}
-              <div className="inline-flex items-center overflow-hidden rounded-full border border-[#E50914]/60 bg-black/20 p-1">
-                {tabs.map((t) => (
-                  <button
-                    key={t}
-                    type="button"
-                    onClick={() => setActiveTab(t)}
-                    className={`min-w-[130px] rounded-full px-6 py-2 text-sm font-medium transition ${
-                      activeTab === t
-                        ? "bg-[#E50914] text-white"
-                        : "text-white/75 hover:text-white"
-                    }`}
-                  >
-                    {t}
-                  </button>
-                ))}
-              </div>
-
-              {/* filter by country */}
-              {/* <button
+          <h1 className="font-(family-name:--font-anton) text-4xl sm:text-5xl tracking-tight">
+            Upcoming releases{" "}
+            <span className="relative inline-block" ref={localeRef}>
+              <button
                 type="button"
-                className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-black/25 px-4 py-2 text-sm text-white/80 backdrop-blur-sm transition hover:border-white/30"
+                onClick={() => setLocaleOpen((o) => !o)}
+                className="inline-flex items-baseline gap-2 cursor-pointer"
+                aria-label="Change region"
+                aria-expanded={localeOpen}
+                aria-haspopup="dialog"
               >
-                {watchRegion} · {languageLabelFor(watchRegion, language)}{" "}
-                <ChevronDown className="size-4 text-white/70" />
-              </button> */}
-            </div>
+                <span className={cn("font-bold text-white transition", localeOpen && "text-white/80")}>
+                  {regionLabel(watchRegion)}
+                </span>
+                <ChevronDown
+                  className={cn(
+                    "relative top-0.5 inline size-5 text-white/60 transition-transform",
+                    localeOpen && "rotate-180"
+                  )}
+                />
+              </button>
+              {localeOpen ? <LocaleMenuPopover onClose={() => setLocaleOpen(false)} /> : null}
+            </span>
+          </h1>
+
+          {/* Tabs */}
+          <div className="mt-6 flex items-center gap-6 border-b border-white/15">
+            {tabs.map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setActiveTab(t)}
+                className={`relative pb-3 text-sm font-semibold uppercase tracking-wide transition ${
+                  activeTab === t
+                    ? "text-white"
+                    : "text-white/50 hover:text-white/75"
+                }`}
+              >
+                {t}
+                {activeTab === t ? (
+                  <span className="absolute inset-x-0 bottom-0 h-0.5 bg-[#E50914]" />
+                ) : null}
+              </button>
+            ))}
           </div>
         </div>
 
         {/* Sections */}
-        <div className="mt-10 space-y-12 px-4 sm:px-6 lg:px-0">
+        <div className="mt-10 space-y-10 px-4 sm:px-6 lg:px-0">
           {calendarQuery.isLoading ? (
             <p className="text-sm text-white/70">Loading calendar…</p>
           ) : null}
@@ -233,36 +278,45 @@ export default function ReleaseCalendarPage() {
           ) : null}
           {sections.map(({ dayLabel, movies }) => (
             <section key={dayLabel}>
-              <h2 className="font-(family-name:--font-anton) mb-6 text-xl sm:text-2xl uppercase tracking-tight text-white/95">
+              <h2 className="font-(family-name:--font-anton) mb-4 text-lg sm:text-xl uppercase tracking-tight text-white/90">
                 {dayLabel}
               </h2>
 
-              <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+              <div className="divide-y divide-white/10">
                 {movies.map((m, idx) => (
                   <Link
                     key={`${dayLabel}-${m.id}-${idx}`}
                     href={m.kind === "tv" ? `/tv-shows/${m.id}` : `/movies/${m.id}`}
-                    className="group text-inherit no-underline"
+                    className="group flex items-center gap-4 py-4 text-inherit no-underline transition hover:bg-white/5 sm:gap-5"
                   >
-                    <div className="relative aspect-2/3 overflow-hidden rounded-xl border border-white/10 bg-white/5">
+                    {/* Poster thumbnail */}
+                    <div className="relative h-16 w-11 shrink-0 overflow-hidden rounded-md border border-white/10 bg-white/5 sm:h-20 sm:w-14">
                       {m.image ? (
                         <Image
                           src={m.image}
                           alt={m.title}
                           fill
-                          className="object-cover transition duration-300 group-hover:scale-105"
+                          sizes="56px"
+                          className="object-cover"
                         />
                       ) : (
-                        <div className="flex size-full items-center justify-center text-sm text-white/45">
-                          No poster
+                        <div className="flex size-full items-center justify-center text-[10px] text-white/40">
+                          N/A
                         </div>
                       )}
                     </div>
 
-                    <h3 className="mt-3 font-(family-name:--font-anton) text-base leading-snug text-white line-clamp-2">
-                      {m.title}
-                    </h3>
-                    <p className="mt-1 text-xs text-white/60">{m.date}</p>
+                    {/* Info */}
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-(family-name:--font-anton) text-base leading-snug text-white line-clamp-1">
+                        {m.title} {releaseYear(m.date)}
+                      </h3>
+                      {m.overview ? (
+                        <p className="mt-1 text-xs leading-relaxed text-white/50 line-clamp-2">
+                          {m.overview}
+                        </p>
+                      ) : null}
+                    </div>
                   </Link>
                 ))}
               </div>

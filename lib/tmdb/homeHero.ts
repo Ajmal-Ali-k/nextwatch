@@ -1,5 +1,6 @@
 import type { HeroSlide } from "@/components/HeroBannerSwiper";
 import { TMDB_API_V3_BASE, backdropHeroUrl } from "@/lib/tmdb/constants";
+import { getCuratedHeroSlides } from "@/lib/db/getCuratedHeroSlides";
 
 const DEFAULT_LANGUAGE = "en-US";
 const HERO_LIMIT = 8;
@@ -16,6 +17,11 @@ type TmdbTrendingResponse = {
 };
 
 export async function getHomeHeroSlides(): Promise<HeroSlide[]> {
+  // Try admin-curated slides first
+  const curated = await getCuratedHeroSlides();
+  if (curated && curated.length > 0) return curated;
+
+  // Fall back to TMDB trending
   const apiKey = process.env.TMDB_API_KEY;
   if (!apiKey) return [];
 

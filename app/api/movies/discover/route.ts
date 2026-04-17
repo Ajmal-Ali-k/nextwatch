@@ -46,7 +46,9 @@ function buildDiscoverUrl(
   tmdbPage: number,
   withOriginalLanguage: string | undefined,
   sortBy: string,
-  withGenres: string | undefined
+  withGenres: string | undefined,
+  releaseDateGte: string | undefined,
+  releaseDateLte: string | undefined
 ): string {
   const url = new URL(`${TMDB_API_V3_BASE}/discover/movie`);
   url.searchParams.set("api_key", apiKey);
@@ -64,6 +66,12 @@ function buildDiscoverUrl(
   if (watchProvidersFilter) {
     url.searchParams.set("with_watch_providers", watchProvidersFilter);
     url.searchParams.set("with_watch_monetization_types", "flatrate|rent|buy");
+  }
+  if (releaseDateGte) {
+    url.searchParams.set("primary_release_date.gte", releaseDateGte);
+  }
+  if (releaseDateLte) {
+    url.searchParams.set("primary_release_date.lte", releaseDateLte);
   }
   return url.toString();
 }
@@ -96,6 +104,8 @@ export async function GET(request: Request) {
   }
 
   const sortBy = parseDiscoverSort(searchParams.get("sortBy"));
+  const releaseDateGte = searchParams.get("releaseDateGte") ?? undefined;
+  const releaseDateLte = searchParams.get("releaseDateLte") ?? undefined;
 
   let genreIdStr: string | undefined;
   const genreIdParam = searchParams.get("genreId");
@@ -147,7 +157,9 @@ export async function GET(request: Request) {
       tmdbPage,
       withOriginalLanguage,
       sortBy,
-      genreIdStr
+      genreIdStr,
+      releaseDateGte,
+      releaseDateLte
     );
     const res = await fetch(url, fetchOptions);
 
