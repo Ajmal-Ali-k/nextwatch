@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { TMDB_API_V3_BASE, posterUrl } from "@/lib/tmdb/constants";
+import { originalLanguageForDiscover } from "@/lib/tmdb/discoverFilters";
 import type {
   NormalizedDiscoverMovie,
   TmdbDiscoverMovieResult,
@@ -20,13 +21,16 @@ const NOW_PLAYING_RESPONSE_LANGUAGE = "en-US";
 const MAX_BROWSABLE_ITEMS = TMDB_MAX_PAGE * TMDB_PAGE_SIZE;
 const MAX_DISPLAY_PAGE = Math.ceil(MAX_BROWSABLE_ITEMS / RESULTS_PER_VIEW);
 
-function toNormalized(m: TmdbDiscoverMovieResult): NormalizedDiscoverMovie {
+type NormalizedWithLang = NormalizedDiscoverMovie & { originalLanguage?: string };
+
+function toNormalized(m: TmdbDiscoverMovieResult): NormalizedWithLang {
   return {
     id: m.id,
     title: m.title,
     releaseDate: m.release_date,
     posterUrl: posterUrl(m.poster_path),
     overview: m.overview,
+    originalLanguage: m.original_language,
   };
 }
 
@@ -54,6 +58,8 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const watchRegionRaw = (searchParams.get("watchRegion") ?? "IN").toUpperCase();
+  const language = searchParams.get("language") ?? "";
+  const preferredLang = originalLanguageForDiscover(watchRegionRaw, language);
   const pageRaw = searchParams.get("page");
   const pageParsed = pageRaw == null || pageRaw === "" ? 1 : Number(pageRaw);
   if (!Number.isInteger(pageParsed) || pageParsed < 1 || pageParsed > MAX_DISPLAY_PAGE) {
@@ -77,7 +83,7 @@ export async function GET(request: Request) {
 
   let tmdbPage = Math.floor(offset / TMDB_PAGE_SIZE) + 1;
   let skip = offset % TMDB_PAGE_SIZE;
-  const merged: NormalizedDiscoverMovie[] = [];
+  const merged: NormalizedWithLang[] = [];
   let totalResults = 0;
   let totalPages = 1;
 
@@ -122,10 +128,24 @@ export async function GET(request: Request) {
     tmdbPage += 1;
   }
 
+  merged.sort((a, b) => {
+    if (preferredLang) {
+      const aMatch = a.originalLanguage === preferredLang ? 0 : 1;
+      const bMatch = b.originalLanguage === preferredLang ? 0 : 1;
+      if (aMatch !== bMatch) return aMatch - bMatch;
+    }
+    return (b.releaseDate ?? "").localeCompare(a.releaseDate ?? "");
+  });
+
+  // Strip internal field before sending to client
+  const results: NormalizedDiscoverMovie[] = merged.map(
+    ({ originalLanguage: _, ...rest }) => rest
+  );
+
   return NextResponse.json({
     page: displayPage,
     totalPages,
     totalResults,
-    results: merged,
+    results,
   });
 }
