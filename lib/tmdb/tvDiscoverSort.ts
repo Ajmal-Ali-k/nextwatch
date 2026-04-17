@@ -10,7 +10,7 @@ export type TvDiscoverSortValue = (typeof TV_DISCOVER_SORT_OPTIONS)[number]["val
 
 const ALLOWED_SORT = new Set<string>(TV_DISCOVER_SORT_OPTIONS.map((o) => o.value));
 
-const DEFAULT_TV_DISCOVER_SORT: TvDiscoverSortValue = "popularity.desc";
+const DEFAULT_TV_DISCOVER_SORT: TvDiscoverSortValue = "first_air_date.desc";
 
 export function parseTvDiscoverSort(param: string | null): TvDiscoverSortValue {
   const v = param ?? DEFAULT_TV_DISCOVER_SORT;

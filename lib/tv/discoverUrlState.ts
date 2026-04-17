@@ -80,7 +80,7 @@ function buildParamsFromState(state: TvShowsDiscoverUrlParsed): URLSearchParams 
   } else if (state.parsedPlatform.kind === "preset") {
     p.set("platform", state.parsedPlatform.key);
   }
-  if (state.sortBy !== "popularity.desc") {
+  if (state.sortBy !== "first_air_date.desc") {
     p.set("sort", state.sortBy);
   }
   if (state.genreId !== null) {

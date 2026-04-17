@@ -389,7 +389,26 @@ export default function MoviesPageContent() {
                   aria-haspopup="dialog"
                   aria-label="More streaming services"
                 >
-                  More
+                  {moreButtonActive && platformSelection.kind === "custom" ? (
+                    <>
+                      {providerLogoUrl(platformSelection.logoPath) ? (
+                        <Image
+                          src={providerLogoUrl(platformSelection.logoPath)!}
+                          alt=""
+                          width={20}
+                          height={20}
+                          className="size-5 rounded object-contain"
+                        />
+                      ) : (
+                        <span className="flex size-5 items-center justify-center rounded bg-white/10 text-[8px] font-bold">
+                          {platformSelection.label.slice(0, 2).toUpperCase()}
+                        </span>
+                      )}
+                      <span className="max-w-20 truncate">{platformSelection.label}</span>
+                    </>
+                  ) : (
+                    "More"
+                  )}
                   <ChevronDown
                     className={cn(
                       "size-4 text-white/70 transition-transform",
@@ -409,9 +428,9 @@ export default function MoviesPageContent() {
                       <p className="text-[10px] font-semibold uppercase tracking-wider text-white/60">
                         Other services
                       </p>
-                      <p className="text-xs text-white/80">
+                      {/* <p className="text-xs text-white/80">
                         TMDB providers in {watchRegion}; tap to filter
-                      </p>
+                      </p> */}
                     </div>
                     <div className="max-h-[min(55vh,22rem)] overflow-y-auto p-2">
                       {watchProvidersQuery.isPending ? (

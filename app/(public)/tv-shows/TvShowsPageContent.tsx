@@ -397,7 +397,26 @@ export default function TvShowsPageContent() {
                   aria-haspopup="dialog"
                   aria-label="More streaming services"
                 >
-                  More
+                  {moreButtonActive && platformSelection.kind === "custom" ? (
+                    <>
+                      {providerLogoUrl(platformSelection.logoPath) ? (
+                        <Image
+                          src={providerLogoUrl(platformSelection.logoPath)!}
+                          alt=""
+                          width={20}
+                          height={20}
+                          className="size-5 rounded object-contain"
+                        />
+                      ) : (
+                        <span className="flex size-5 items-center justify-center rounded bg-white/10 text-[8px] font-bold">
+                          {platformSelection.label.slice(0, 2).toUpperCase()}
+                        </span>
+                      )}
+                      <span className="max-w-20 truncate">{platformSelection.label}</span>
+                    </>
+                  ) : (
+                    "More"
+                  )}
                   <ChevronDown
                     className={cn(
                       "size-4 text-white/70 transition-transform",

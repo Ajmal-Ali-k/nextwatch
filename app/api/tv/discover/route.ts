@@ -190,6 +190,10 @@ export async function GET(request: Request) {
     tmdbPage += 1;
   }
 
+  if (sortBy === "popularity.desc") {
+    merged.sort((a, b) => (b.firstAirDate ?? "").localeCompare(a.firstAirDate ?? ""));
+  }
+
   return NextResponse.json({
     page: displayPage,
     totalPages,
