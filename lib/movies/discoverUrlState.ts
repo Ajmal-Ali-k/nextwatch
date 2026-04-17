@@ -78,7 +78,7 @@ function buildParamsFromState(state: MoviesDiscoverUrlParsed): URLSearchParams {
   } else if (state.parsedPlatform.kind === "preset") {
     p.set("platform", state.parsedPlatform.key);
   }
-  if (state.sortBy !== "popularity.desc") {
+  if (state.sortBy !== "primary_release_date.desc") {
     p.set("sort", state.sortBy);
   }
   if (state.genreId !== null) {

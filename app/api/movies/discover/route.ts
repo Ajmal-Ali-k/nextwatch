@@ -198,6 +198,10 @@ export async function GET(request: Request) {
     tmdbPage += 1;
   }
 
+  if (sortBy === "popularity.desc") {
+    merged.sort((a, b) => (b.releaseDate ?? "").localeCompare(a.releaseDate ?? ""));
+  }
+
   return NextResponse.json({
     page: displayPage,
     totalPages,

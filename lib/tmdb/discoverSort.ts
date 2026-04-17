@@ -10,7 +10,7 @@ export type DiscoverSortValue = (typeof DISCOVER_SORT_OPTIONS)[number]["value"];
 
 const ALLOWED_SORT = new Set<string>(DISCOVER_SORT_OPTIONS.map((o) => o.value));
 
-const DEFAULT_DISCOVER_SORT: DiscoverSortValue = "popularity.desc";
+const DEFAULT_DISCOVER_SORT: DiscoverSortValue = "primary_release_date.desc";
 
 export function parseDiscoverSort(param: string | null): DiscoverSortValue {
   const v = param ?? DEFAULT_DISCOVER_SORT;
