@@ -25,7 +25,32 @@ const anton = Anton({
 
 export const metadata: Metadata = {
   title: "NextWatch",
-  description: "NextWatch application",
+  description: "Watchlist for movies and TV shows",
+  icons: {
+    icon: "/favicon.ico",
+  },
+  // manifest: "/manifest.json",
+  // themeColor: "#000000",
+  // viewport: {
+  //   width: "device-width",
+  //   initialScale: 1,
+  //   maximumScale: 1,
+  //   userScalable: false,
+  // },
+  // openGraph: {
+  //   title: "NextWatch",
+  //   description: "Watchlist for movies and TV shows",
+  //   url: "https://nextwatchlist.com/",
+  //   siteName: "NextWatchList",
+  //   images: [
+  //     {
+  //       url: "/og-image.png",
+  //       width: 1200,
+  //       height: 630,
+  //       alt: "NextWatchList",
+  //     },
+  //   ],
+  // },
 };
 
 export default function RootLayout({
