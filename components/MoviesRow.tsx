@@ -140,21 +140,21 @@ export default function MoviesRow({
         </div>
       )}
 
-      <div className="relative z-10 px-4 sm:px-6">
+      <div className="relative z-10 px-3 sm:px-4 md:px-6">
         {/* Header: title + filters + View All */}
-        <div className="mb-5 flex flex-wrap items-center gap-10">
-          <h2 className="font-(family-name:--font-anton) text-2xl sm:text-3xl lg:text-4xl xl:text-5xl uppercase leading-tight tracking-tight text-white">
+        <div className="mb-3 flex flex-wrap items-center gap-4 sm:mb-5 sm:gap-10">
+          <h2 className="font-(family-name:--font-anton) text-xl uppercase leading-tight tracking-tight text-white sm:text-3xl lg:text-4xl xl:text-5xl">
             {heading ?? title}
           </h2>
 
           {/* {filters && filters.length > 0 && (
-            <div className="inline-flex items-center overflow-hidden rounded-full border border-[#E50914]/60 bg-black/20 p-1">
+            <div className="inline-flex items-center overflow-hidden rounded-full border border-[#E50914]/60 bg-black/20 p-0.5 sm:p-1">
               {filters.map((filter) => (
                 <button
                   key={filter}
                   type="button"
                   onClick={() => setActiveFilter(filter)}
-                  className={`min-w-[110px] rounded-full px-6 py-2 text-sm font-medium transition ${activeFilter === filter
+                  className={`rounded-full px-3 py-1.5 text-xs font-medium transition sm:min-w-[110px] sm:px-6 sm:py-2 sm:text-sm ${activeFilter === filter
                       ? "bg-[#E50914] text-white"
                       : "text-white/75 hover:text-white"
                     }`}
@@ -169,7 +169,7 @@ export default function MoviesRow({
             <div className="ml-auto">
               <Link
                 href={viewAllLink ?? "#"}
-                className="group/btn relative inline-flex items-center justify-center overflow-hidden rounded-md border border-[#E50914] bg-transparent px-10 py-2 text-sm font-medium text-white no-underline transition-shadow duration-300 hover:shadow-[0_0_32px_rgba(229,9,20,0.65)]"
+                className="group/btn relative inline-flex items-center justify-center overflow-hidden rounded-md border border-[#E50914] bg-transparent px-5 py-1.5 text-xs font-medium text-white no-underline transition-shadow duration-300 hover:shadow-[0_0_32px_rgba(229,9,20,0.65)] sm:px-10 sm:py-2 sm:text-sm"
               >
                 <span className="pointer-events-none absolute inset-0 -translate-x-full bg-[#E50914] transition-transform duration-300 ease-out group-hover/btn:translate-x-0" />
                 <span className="relative">View All</span>
@@ -185,7 +185,7 @@ export default function MoviesRow({
             aria-label="Scroll movies left"
             onClick={() => scrollByCards("left")}
             disabled={!canScrollLeft}
-            className="pointer-events-auto absolute left-2 top-1/2 z-20 -translate-y-1/2 rounded-full border border-white/20 bg-black/55 p-2.5 text-white shadow-[0_10px_30px_rgba(0,0,0,0.55)] backdrop-blur-md transition-colors disabled:pointer-events-none disabled:border-white/10 disabled:bg-black/30 disabled:text-white/40"
+            className="pointer-events-auto absolute left-1 top-1/2 z-20 hidden -translate-y-1/2 rounded-full border border-white/20 bg-black/55 p-2 text-white shadow-[0_10px_30px_rgba(0,0,0,0.55)] backdrop-blur-md transition-colors disabled:pointer-events-none disabled:border-white/10 disabled:bg-black/30 disabled:text-white/40 sm:flex sm:p-2.5 md:left-2"
             animate={{
               opacity: canScrollLeft ? 1 : 0,
               x: canScrollLeft ? 0 : -14,
@@ -203,7 +203,7 @@ export default function MoviesRow({
             aria-label="Scroll movies right"
             onClick={() => scrollByCards("right")}
             disabled={!canScrollRight}
-            className="pointer-events-auto absolute right-2 top-1/2 z-20 -translate-y-1/2 rounded-full border border-white/20 bg-black/55 p-2.5 text-white shadow-[0_10px_30px_rgba(0,0,0,0.55)] backdrop-blur-md transition-colors disabled:pointer-events-none disabled:border-white/10 disabled:bg-black/30 disabled:text-white/40"
+            className="pointer-events-auto absolute right-1 top-1/2 z-20 hidden -translate-y-1/2 rounded-full border border-white/20 bg-black/55 p-2 text-white shadow-[0_10px_30px_rgba(0,0,0,0.55)] backdrop-blur-md transition-colors disabled:pointer-events-none disabled:border-white/10 disabled:bg-black/30 disabled:text-white/40 sm:flex sm:p-2.5 md:right-2"
             animate={{
               opacity: canScrollRight ? 1 : 0,
               x: canScrollRight ? 0 : 14,
@@ -230,8 +230,8 @@ export default function MoviesRow({
               const inner = (
                 <>
                   <div
-                    className={`relative mb-3 overflow-hidden shadow-none transition group-hover:shadow-[0_0_30px_rgba(214,33,42,0.6)] ${landscape
-                        ? "aspect-video rounded-lg border border-white/10"
+                    className={`relative mb-2 overflow-hidden shadow-none transition group-hover:shadow-[0_0_30px_rgba(214,33,42,0.6)] sm:mb-3 ${landscape
+                        ? "aspect-video rounded-md border border-white/10 sm:rounded-lg"
                         : "aspect-2/3 rounded-sm"
                       }`}
                   >
@@ -243,10 +243,10 @@ export default function MoviesRow({
                       className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
                     />
                   </div>
-                  <h3 className="font-(family-name:--font-anton) text-base sm:text-lg leading-snug text-white line-clamp-2">
+                  <h3 className="font-(family-name:--font-anton) text-sm leading-snug text-white line-clamp-2 sm:text-base md:text-lg">
                     {movie.title}
                   </h3>
-                  <p className="mt-1 text-xs sm:text-sm text-white/60">
+                  <p className="mt-0.5 text-[0.65rem] text-white/60 sm:mt-1 sm:text-xs md:text-sm">
                     {movie.date}
                   </p>
                 </>

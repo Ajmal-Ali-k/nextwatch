@@ -210,7 +210,7 @@ export default function ReleaseCalendarPage() {
   }, [calendarQuery.data]);
 
   return (
-    <main className="relative min-h-screen pb-16 pt-12 text-white">
+    <main className="relative min-h-screen pb-10 pt-8 text-white sm:pb-16 sm:pt-12">
       {/* page glow background */}
       <div className="pointer-events-none absolute inset-0 -z-10">
         <div className="absolute inset-0 bg-neutral-900" />
@@ -220,14 +220,14 @@ export default function ReleaseCalendarPage() {
 
       <div className="mx-auto container">
         {/* Header */}
-        <div className="mt-2 px-4 sm:px-6 lg:px-0">
-          <h1 className="font-(family-name:--font-anton) text-4xl sm:text-5xl tracking-tight">
+        <div className="mt-1 px-3 sm:mt-2 sm:px-6 lg:px-0">
+          <h1 className="font-(family-name:--font-anton) text-2xl tracking-tight sm:text-4xl md:text-5xl">
             Upcoming releases{" "}
             <span className="relative inline-block" ref={localeRef}>
               <button
                 type="button"
                 onClick={() => setLocaleOpen((o) => !o)}
-                className="inline-flex items-baseline gap-2 cursor-pointer"
+                className="inline-flex items-baseline gap-1 cursor-pointer sm:gap-2"
                 aria-label="Change region"
                 aria-expanded={localeOpen}
                 aria-haspopup="dialog"
@@ -237,7 +237,7 @@ export default function ReleaseCalendarPage() {
                 </span>
                 <ChevronDown
                   className={cn(
-                    "relative top-0.5 inline size-5 text-white/60 transition-transform",
+                    "relative top-0.5 inline size-4 text-white/60 transition-transform sm:size-5",
                     localeOpen && "rotate-180"
                   )}
                 />
@@ -247,13 +247,13 @@ export default function ReleaseCalendarPage() {
           </h1>
 
           {/* Tabs */}
-          <div className="mt-6 flex items-center gap-6 border-b border-white/15">
+          <div className="-mx-3 mt-4 flex items-center gap-1 overflow-x-auto border-b border-white/15 px-3 sm:mx-0 sm:mt-6 sm:gap-6 sm:px-0">
             {tabs.map((t) => (
               <button
                 key={t}
                 type="button"
                 onClick={() => setActiveTab(t)}
-                className={`relative pb-3 text-sm font-semibold uppercase tracking-wide transition ${
+                className={`relative shrink-0 pb-2.5 text-xs font-semibold uppercase tracking-wide transition sm:pb-3 sm:text-sm ${
                   activeTab === t
                     ? "text-white"
                     : "text-white/50 hover:text-white/75"
@@ -269,7 +269,7 @@ export default function ReleaseCalendarPage() {
         </div>
 
         {/* Sections */}
-        <div className="mt-10 space-y-10 px-4 sm:px-6 lg:px-0">
+        <div className="mt-6 space-y-8 px-3 sm:mt-10 sm:space-y-10 sm:px-6 lg:px-0">
           {calendarQuery.isLoading ? (
             <p className="text-sm text-white/70">Loading calendar…</p>
           ) : null}
@@ -278,7 +278,7 @@ export default function ReleaseCalendarPage() {
           ) : null}
           {sections.map(({ dayLabel, movies }) => (
             <section key={dayLabel}>
-              <h2 className="font-(family-name:--font-anton) mb-4 text-lg sm:text-xl uppercase tracking-tight text-white/90">
+              <h2 className="font-(family-name:--font-anton) mb-3 text-base uppercase tracking-tight text-white/90 sm:mb-4 sm:text-lg md:text-xl">
                 {dayLabel}
               </h2>
 
@@ -287,16 +287,16 @@ export default function ReleaseCalendarPage() {
                   <Link
                     key={`${dayLabel}-${m.id}-${idx}`}
                     href={m.kind === "tv" ? `/tv-shows/${m.id}` : `/movies/${m.id}`}
-                    className="group flex items-center gap-4 py-4 text-inherit no-underline transition hover:bg-white/5 sm:gap-5"
+                    className="group flex items-start gap-3 rounded-md px-1 py-3 text-inherit no-underline transition hover:bg-white/5 sm:items-center sm:gap-5 sm:px-0 sm:py-4"
                   >
                     {/* Poster thumbnail */}
-                    <div className="relative h-16 w-11 shrink-0 overflow-hidden rounded-md border border-white/10 bg-white/5 sm:h-20 sm:w-14">
+                    <div className="relative h-16 w-11 shrink-0 overflow-hidden rounded border border-white/10 bg-white/5 sm:h-20 sm:w-14 sm:rounded-md">
                       {m.image ? (
                         <Image
                           src={m.image}
                           alt={m.title}
                           fill
-                          sizes="56px"
+                          sizes="(min-width:640px) 56px, 44px"
                           className="object-cover"
                         />
                       ) : (
@@ -308,11 +308,11 @@ export default function ReleaseCalendarPage() {
 
                     {/* Info */}
                     <div className="min-w-0 flex-1">
-                      <h3 className="font-(family-name:--font-anton) text-base leading-snug text-white line-clamp-1">
+                      <h3 className="font-(family-name:--font-anton) text-sm leading-snug text-white line-clamp-2 sm:text-base sm:line-clamp-1">
                         {m.title} {releaseYear(m.date)}
                       </h3>
                       {m.overview ? (
-                        <p className="mt-1 text-xs leading-relaxed text-white/50 line-clamp-2">
+                        <p className="mt-0.5 text-[0.65rem] leading-relaxed text-white/50 line-clamp-2 sm:mt-1 sm:text-xs">
                           {m.overview}
                         </p>
                       ) : null}

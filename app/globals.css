@@ -58,7 +58,7 @@
 }
 
 .movie-card {
-  width: calc((100% - 1 * 1.25rem) / 2.2);
+  width: calc((100% - 1 * 0.75rem) / 2.2);
 }
 
 @media (min-width: 640px) {
@@ -80,7 +80,7 @@
 }
 
 .landscape-card {
-  width: calc((100% - 1 * 1.25rem) / 1.15);
+  width: calc((100% - 1 * 0.75rem) / 1.15);
 }
 
 @media (min-width: 640px) {

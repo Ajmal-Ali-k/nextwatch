@@ -223,20 +223,20 @@ export default function LatestTrailersRow({
         <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(10,10,10,0.95)_0%,rgba(10,10,10,0.6)_35%,rgba(10,10,10,0.25)_62%,rgba(10,10,10,0.9)_100%)]" />
       </div>
 
-      <div className="relative z-10 px-4 py-7 sm:px-6">
+      <div className="relative z-10 px-3 py-5 sm:px-4 sm:py-7 md:px-6">
         {/* header */}
-        <div className="mb-5 flex flex-wrap items-center gap-10">
-          <h2 className="font-(family-name:--font-anton) text-2xl sm:text-3xl lg:text-4xl xl:text-5xl uppercase leading-tight tracking-tight text-white">
+        <div className="mb-4 flex flex-col gap-3 sm:mb-5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-10">
+          <h2 className="font-(family-name:--font-anton) text-xl uppercase leading-tight tracking-tight text-white sm:text-3xl lg:text-4xl xl:text-5xl">
             {title}
           </h2>
 
-          <div className="inline-flex items-center overflow-hidden rounded-full border border-[#E50914]/60 bg-black/20 p-1">
+          <div className="inline-flex items-center self-start overflow-hidden rounded-full border border-[#E50914]/60 bg-black/20 p-0.5 sm:p-1">
             {filterTabs.map((filter) => (
               <button
                 key={filter}
                 type="button"
                 onClick={() => setActiveFilter(filter)}
-                className={`min-w-[110px] rounded-full px-6 py-2 text-sm font-medium transition ${
+                className={`rounded-full px-3 py-1.5 text-xs font-medium transition sm:min-w-[110px] sm:px-6 sm:py-2 sm:text-sm ${
                   activeFilter === filter
                     ? "bg-[#E50914] text-white"
                     : "text-white/75 hover:text-white"
@@ -255,7 +255,7 @@ export default function LatestTrailersRow({
             aria-label="Scroll trailers left"
             onClick={() => scrollByCards("left")}
             disabled={!canScrollLeft}
-            className="pointer-events-auto absolute left-2 top-1/2 z-20 -translate-y-1/2 rounded-full border border-white/20 bg-black/55 p-2.5 text-white shadow-[0_10px_30px_rgba(0,0,0,0.55)] backdrop-blur-md transition-colors disabled:pointer-events-none disabled:border-white/10 disabled:bg-black/30 disabled:text-white/40"
+            className="pointer-events-auto absolute left-1 top-1/2 z-20 hidden -translate-y-1/2 rounded-full border border-white/20 bg-black/55 p-2 text-white shadow-[0_10px_30px_rgba(0,0,0,0.55)] backdrop-blur-md transition-colors disabled:pointer-events-none disabled:border-white/10 disabled:bg-black/30 disabled:text-white/40 sm:flex sm:p-2.5 md:left-2"
             animate={{
               opacity: canScrollLeft ? 1 : 0,
               x: canScrollLeft ? 0 : -14,
@@ -273,7 +273,7 @@ export default function LatestTrailersRow({
             aria-label="Scroll trailers right"
             onClick={() => scrollByCards("right")}
             disabled={!canScrollRight}
-            className="pointer-events-auto absolute right-2 top-1/2 z-20 -translate-y-1/2 rounded-full border border-white/20 bg-black/55 p-2.5 text-white shadow-[0_10px_30px_rgba(0,0,0,0.55)] backdrop-blur-md transition-colors disabled:pointer-events-none disabled:border-white/10 disabled:bg-black/30 disabled:text-white/40"
+            className="pointer-events-auto absolute right-1 top-1/2 z-20 hidden -translate-y-1/2 rounded-full border border-white/20 bg-black/55 p-2 text-white shadow-[0_10px_30px_rgba(0,0,0,0.55)] backdrop-blur-md transition-colors disabled:pointer-events-none disabled:border-white/10 disabled:bg-black/30 disabled:text-white/40 sm:flex sm:p-2.5 md:right-2"
             animate={{
               opacity: canScrollRight ? 1 : 0,
               x: canScrollRight ? 0 : 14,
@@ -289,7 +289,7 @@ export default function LatestTrailersRow({
           <motion.div
             ref={scrollRef}
             onScroll={updateScrollButtons}
-            className="scroll-linked-list flex min-w-0 gap-5 overflow-x-scroll pb-4"
+            className="scroll-linked-list flex min-w-0 gap-3 overflow-x-scroll pb-4 sm:gap-5"
             style={{ maskImage }}
           >
             {visibleTrailers.length === 0 ? (
@@ -304,7 +304,7 @@ export default function LatestTrailersRow({
                 return (
                   <article
                     key={rowKey}
-                    className="group flex w-[min(100vw-3rem,320px)] shrink-0 flex-col landscape-card sm:w-[280px]"
+                    className="group flex w-[min(75vw,260px)] shrink-0 flex-col landscape-card sm:w-[280px] md:w-[320px]"
                   >
                     {playable ? (
                       <button
@@ -315,7 +315,7 @@ export default function LatestTrailersRow({
                         }
                         className="text-left outline-offset-4 focus-visible:ring-2 focus-visible:ring-white/50"
                       >
-                        <div className="relative mb-3 aspect-video overflow-hidden rounded-xl border border-white/10 transition group-hover:shadow-[0_0_30px_rgba(214,33,42,0.6)]">
+                        <div className="relative mb-2 aspect-video overflow-hidden rounded-lg border border-white/10 transition group-hover:shadow-[0_0_30px_rgba(214,33,42,0.6)] sm:mb-3 sm:rounded-xl">
                           <Image
                             src={trailer.image}
                             alt={trailer.title}
@@ -325,14 +325,14 @@ export default function LatestTrailersRow({
                           />
                           <div className="absolute inset-0 bg-black/10" />
                           <span className="absolute inset-0 flex items-center justify-center bg-black/35 opacity-90 transition group-hover:bg-black/45">
-                            <span className="flex size-14 items-center justify-center rounded-full bg-[#E50914] text-white shadow-lg ring-2 ring-white/30">
-                              <Play className="size-7 fill-white" aria-hidden />
+                            <span className="flex size-10 items-center justify-center rounded-full bg-[#E50914] text-white shadow-lg ring-2 ring-white/30 sm:size-14">
+                              <Play className="size-5 fill-white sm:size-7" aria-hidden />
                             </span>
                           </span>
                         </div>
                       </button>
                     ) : (
-                      <div className="relative mb-3 aspect-video overflow-hidden rounded-xl border border-white/10">
+                      <div className="relative mb-2 aspect-video overflow-hidden rounded-lg border border-white/10 sm:mb-3 sm:rounded-xl">
                         <Image
                           src={trailer.image}
                           alt={trailer.title}
