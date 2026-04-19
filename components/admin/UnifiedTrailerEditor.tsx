@@ -4,8 +4,24 @@ import { useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Save, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import type { DragEndEvent } from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  arrayMove,
+  sortableKeyboardCoordinates,
+} from "@dnd-kit/sortable";
+import { restrictToVerticalAxis, restrictToParentElement } from "@dnd-kit/modifiers";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { TrailerSearchPanel } from "./TrailerSearchPanel";
 import { YouTubeManualForm } from "./YouTubeManualForm";
@@ -21,6 +37,10 @@ const FILTER_TABS: FilterTab[] = ["All", ...TRAILER_CATEGORIES];
 
 type AddTab = "search" | "youtube";
 
+function getTrailerSortableId(item: TrailerSectionItem, index: number) {
+  return `${item.mediaType}-${item.tmdbId ?? item.youtubeKey}-${item.category}-${index}`;
+}
+
 export function UnifiedTrailerEditor({
   initialItems,
 }: {
@@ -32,12 +52,28 @@ export function UnifiedTrailerEditor({
   const [filterTab, setFilterTab] = useState<FilterTab>("All");
   const [addTab, setAddTab] = useState<AddTab>("search");
 
-  const filteredItems = useMemo(
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const filteredWithGlobalIndex = useMemo(() => {
+    if (filterTab === "All") {
+      return items.map((item, i) => ({ item, globalIndex: i }));
+    }
+    return items
+      .map((item, i) => ({ item, globalIndex: i }))
+      .filter(({ item }) => item.category === filterTab);
+  }, [items, filterTab]);
+
+  const sortableIds = useMemo(
     () =>
-      filterTab === "All"
-        ? items
-        : items.filter((it) => it.category === filterTab),
-    [items, filterTab]
+      filteredWithGlobalIndex.map(({ item, globalIndex }) =>
+        getTrailerSortableId(item, globalIndex)
+      ),
+    [filteredWithGlobalIndex]
   );
 
   const existingIds = useMemo(
@@ -54,101 +90,40 @@ export function UnifiedTrailerEditor({
     (item: Omit<TrailerSectionItem, "addedAt" | "order">) => {
       setItems((prev) => [
         ...prev,
-        {
-          ...item,
-          addedAt: new Date().toISOString(),
-          order: prev.length,
-        },
+        { ...item, addedAt: new Date().toISOString(), order: prev.length },
       ]);
       toast.success(`Added "${item.title}"`);
     },
     []
   );
 
-  const handleRemove = useCallback(
-    (globalIndex: number) => {
-      setItems((prev) => prev.filter((_, i) => i !== globalIndex));
-    },
-    []
-  );
+  const handleRemove = useCallback((globalIndex: number) => {
+    setItems((prev) => prev.filter((_, i) => i !== globalIndex));
+  }, []);
 
-  const handleMoveUp = useCallback(
-    (globalIndex: number) => {
-      if (globalIndex === 0) return;
-      setItems((prev) => {
-        const next = [...prev];
-        [next[globalIndex - 1], next[globalIndex]] = [
-          next[globalIndex],
-          next[globalIndex - 1],
-        ];
-        return next;
-      });
-    },
-    []
-  );
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
 
-  const handleMoveDown = useCallback(
-    (globalIndex: number) => {
-      setItems((prev) => {
-        if (globalIndex >= prev.length - 1) return prev;
-        const next = [...prev];
-        [next[globalIndex], next[globalIndex + 1]] = [
-          next[globalIndex + 1],
-          next[globalIndex],
-        ];
-        return next;
-      });
-    },
-    []
-  );
+    const oldDisplayIndex = sortableIds.indexOf(String(active.id));
+    const newDisplayIndex = sortableIds.indexOf(String(over.id));
+    if (oldDisplayIndex === -1 || newDisplayIndex === -1) return;
 
-  const handleMoveTo = useCallback(
-    (fromGlobal: number, toDisplayIndex: number) => {
-      if (filterTab === "All") {
-        // Simple reorder in the full list
-        setItems((prev) => {
-          const next = [...prev];
-          const [moved] = next.splice(fromGlobal, 1);
-          next.splice(toDisplayIndex, 0, moved);
-          return next;
-        });
-      } else {
-        // Reorder within a filtered view — map display index back to global
-        setItems((prev) => {
-          const filtered = prev
-            .map((it, i) => ({ it, i }))
-            .filter(({ it }) => it.category === filterTab);
-          if (
-            toDisplayIndex < 0 ||
-            toDisplayIndex >= filtered.length
-          )
-            return prev;
-
-          const next = [...prev];
-          const [moved] = next.splice(fromGlobal, 1);
-          const targetGlobal = filtered[toDisplayIndex]?.i ?? next.length;
-          next.splice(
-            targetGlobal > fromGlobal ? targetGlobal - 1 : targetGlobal,
-            0,
-            moved
-          );
-          return next;
-        });
-      }
-    },
-    [filterTab]
-  );
-
-  // Map filtered display index to global index
-  const globalIndices = useMemo(() => {
     if (filterTab === "All") {
-      return items.map((_, i) => i);
+      setItems((prev) => arrayMove(prev, oldDisplayIndex, newDisplayIndex));
+    } else {
+      setItems((prev) => {
+        const oldGlobal = filteredWithGlobalIndex[oldDisplayIndex].globalIndex;
+        const newGlobal = filteredWithGlobalIndex[newDisplayIndex].globalIndex;
+        const next = [...prev];
+        const [moved] = next.splice(oldGlobal, 1);
+        const adjustedTarget =
+          newGlobal > oldGlobal ? newGlobal - 1 : newGlobal;
+        next.splice(adjustedTarget, 0, moved);
+        return next;
+      });
     }
-    return items
-      .map((it, i) => ({ it, i }))
-      .filter(({ it }) => it.category === filterTab)
-      .map(({ i }) => i);
-  }, [items, filterTab]);
+  }
 
   async function handleSave() {
     setSaving(true);
@@ -177,7 +152,6 @@ export function UnifiedTrailerEditor({
 
   const hasChanges = JSON.stringify(items) !== JSON.stringify(initialItems);
 
-  // Category counts
   const counts = useMemo(() => {
     const c: Record<string, number> = { All: items.length };
     for (const cat of TRAILER_CATEGORIES) {
@@ -193,7 +167,7 @@ export function UnifiedTrailerEditor({
           <h1 className="text-2xl font-bold">Trailers</h1>
           <p className="text-sm text-gray-500">
             {items.length} {items.length === 1 ? "trailer" : "trailers"} across{" "}
-            {TRAILER_CATEGORIES.length} categories
+            {TRAILER_CATEGORIES.length} categories &middot; Drag to reorder
           </p>
         </div>
         <Button onClick={handleSave} disabled={saving || !hasChanges}>
@@ -207,10 +181,8 @@ export function UnifiedTrailerEditor({
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_380px] items-start">
-        {/* Items table */}
         <Card className="overflow-hidden">
           <CardHeader className="pb-2">
-            {/* Filter tabs */}
             <div className="flex flex-wrap gap-1">
               {FILTER_TABS.map((tab) => (
                 <button
@@ -233,55 +205,67 @@ export function UnifiedTrailerEditor({
             </div>
           </CardHeader>
           <CardContent className="p-0">
-            {filteredItems.length === 0 ? (
+            {filteredWithGlobalIndex.length === 0 ? (
               <p className="py-12 text-center text-sm text-gray-400">
                 {filterTab === "All"
                   ? "No trailers yet. Use the panel on the right to add trailers."
                   : `No trailers in "${filterTab}". Add some from the right panel.`}
               </p>
             ) : (
-              <div className="max-h-[calc(100vh-260px)] overflow-y-auto">
-                <table className="w-full text-left">
-                  <thead className="sticky top-0 z-10 bg-gray-50 text-xs text-gray-500 uppercase tracking-wider">
-                    <tr>
-                      <th className="py-2 pl-3 pr-1 font-medium w-16">#</th>
-                      <th className="py-2 px-2 font-medium w-24">Preview</th>
-                      <th className="py-2 pr-2 font-medium">Title</th>
-                      <th className="py-2 px-1 font-medium w-24">Category</th>
-                      <th className="py-2 font-medium w-10"></th>
-                      <th className="py-2 pr-3 font-medium text-right w-28">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredItems.map((item, displayIndex) => {
-                      const globalIndex = globalIndices[displayIndex];
-                      return (
-                        <TrailerItemCard
-                          key={`${item.mediaType}-${item.tmdbId ?? item.youtubeKey}-${item.category}`}
-                          item={item}
-                          index={displayIndex}
-                          total={filteredItems.length}
-                          onMoveUp={() => handleMoveUp(globalIndex)}
-                          onMoveDown={() => handleMoveDown(globalIndex)}
-                          onRemove={() => handleRemove(globalIndex)}
-                          onMoveTo={(to) => handleMoveTo(globalIndex, to)}
-                        />
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                modifiers={[restrictToVerticalAxis, restrictToParentElement]}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext
+                  items={sortableIds}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <div className="max-h-[calc(100vh-260px)] overflow-y-auto">
+                    <table className="w-full text-left">
+                      <thead className="sticky top-0 z-10 bg-gray-50 text-xs text-gray-500 uppercase tracking-wider">
+                        <tr>
+                          <th className="py-2 pl-2 pr-1 font-medium w-16">
+                            #
+                          </th>
+                          <th className="py-2 px-2 font-medium w-24">
+                            Preview
+                          </th>
+                          <th className="py-2 pr-2 font-medium">Title</th>
+                          <th className="py-2 px-1 font-medium w-24">
+                            Category
+                          </th>
+                          <th className="py-2 font-medium w-10"></th>
+                          <th className="py-2 pr-3 font-medium text-right w-20">
+                            Actions
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredWithGlobalIndex.map(
+                          ({ item, globalIndex }, displayIndex) => (
+                            <TrailerItemCard
+                              key={sortableIds[displayIndex]}
+                              sortableId={sortableIds[displayIndex]}
+                              item={item}
+                              index={displayIndex}
+                              onRemove={() => handleRemove(globalIndex)}
+                            />
+                          )
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </SortableContext>
+              </DndContext>
             )}
           </CardContent>
         </Card>
 
-        {/* Right panel — sticky */}
         <div className="lg:sticky lg:top-6 space-y-4">
           <Card>
             <CardHeader className="pb-2">
-              {/* Add method tabs */}
               <div className="flex gap-1 rounded-md border p-1">
                 <button
                   type="button"
