@@ -1,27 +1,21 @@
 import { NextResponse } from "next/server";
 
 import { TMDB_API_V3_BASE, posterUrl } from "@/lib/tmdb/constants";
-import { originalLanguageForDiscover } from "@/lib/tmdb/discoverFilters";
 import { discoverAnyOttWatchProvidersParam } from "@/lib/tmdb/platforms";
 import { parseDiscoverSort } from "@/lib/tmdb/discoverSort";
+import { isValidContentLanguage } from "@/lib/regionLanguagePrefs";
 import type {
   NormalizedDiscoverMovie,
   TmdbDiscoverMovieResult,
   TmdbDiscoverResponse,
 } from "@/lib/tmdb/types";
 
-const ALLOWED_REGIONS = new Set(["IN", "US", "GB"]);
-const LANGUAGE_PATTERN = /^[a-z]{2}(-[A-Z]{2})?$/;
-/** TMDB discover allows TMDB page 1–500 */
+const ALLOWED_REGIONS = new Set(["IN", "US", "GB", "CA", "NL", "AE"]);
 const TMDB_MAX_PAGE = 500;
 const TMDB_PAGE_SIZE = 20;
-/** TMDB returns 20 per request; we merge so each response returns this many movies */
-const RESULTS_PER_VIEW = 24;
+const RESULTS_PER_VIEW = 30;
+const MAX_PARALLEL_LANGUAGES = 3;
 
-/**
- * TMDB `language` for discover text fields. Use English so titles match common poster
- * artwork; UI `language` still drives `with_original_language` via {@link originalLanguageForDiscover}.
- */
 const DISCOVER_RESPONSE_LANGUAGE = "en-US";
 
 const MAX_BROWSABLE_ITEMS = TMDB_MAX_PAGE * TMDB_PAGE_SIZE;
@@ -41,7 +35,6 @@ function buildDiscoverUrl(
   apiKey: string,
   watchRegion: string,
   tmdbLanguage: string,
-  /** Single provider id, or pipe-separated OR list from {@link discoverAnyOttWatchProvidersParam}. */
   watchProvidersFilter: string | undefined,
   tmdbPage: number,
   withOriginalLanguage: string | undefined,
@@ -76,6 +69,44 @@ function buildDiscoverUrl(
   return url.toString();
 }
 
+async function fetchOnePage(
+  apiKey: string,
+  watchRegion: string,
+  watchProvidersFilter: string | undefined,
+  tmdbPage: number,
+  withOriginalLanguage: string | undefined,
+  sortBy: string,
+  genreIdStr: string | undefined,
+  releaseDateGte: string | undefined,
+  releaseDateLte: string | undefined
+): Promise<{ results: TmdbDiscoverMovieResult[]; totalResults: number } | null> {
+  const url = buildDiscoverUrl(
+    apiKey,
+    watchRegion,
+    DISCOVER_RESPONSE_LANGUAGE,
+    watchProvidersFilter,
+    tmdbPage,
+    withOriginalLanguage,
+    sortBy,
+    genreIdStr,
+    releaseDateGte,
+    releaseDateLte
+  );
+  const res = await fetch(url, { next: { revalidate: 3600 } });
+  if (!res.ok) return null;
+  const data = (await res.json()) as TmdbDiscoverResponse;
+  return { results: data.results, totalResults: data.total_results };
+}
+
+function parseLanguages(param: string | null): string[] {
+  if (!param) return [];
+  return param
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(isValidContentLanguage)
+    .slice(0, MAX_PARALLEL_LANGUAGES);
+}
+
 export async function GET(request: Request) {
   const apiKey = process.env.TMDB_API_KEY;
   if (!apiKey) {
@@ -87,7 +118,7 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const watchRegionRaw = (searchParams.get("watchRegion") ?? "IN").toUpperCase();
-  const language = searchParams.get("language") ?? "en-US";
+  const languages = parseLanguages(searchParams.get("languages"));
   const providerIdParam = searchParams.get("providerId");
   const pageRaw = searchParams.get("page");
   const pageParsed = pageRaw == null || pageRaw === "" ? 1 : Number(pageRaw);
@@ -98,9 +129,6 @@ export async function GET(request: Request) {
 
   if (!ALLOWED_REGIONS.has(watchRegionRaw)) {
     return NextResponse.json({ error: "Invalid watchRegion" }, { status: 400 });
-  }
-  if (!LANGUAGE_PATTERN.test(language)) {
-    return NextResponse.json({ error: "Invalid language" }, { status: 400 });
   }
 
   const sortBy = parseDiscoverSort(searchParams.get("sortBy"));
@@ -125,7 +153,6 @@ export async function GET(request: Request) {
     }
     watchProvidersFilter = String(n);
   } else {
-    /** "All" = any major OTT in region (excludes theatrical-only). */
     watchProvidersFilter = discoverAnyOttWatchProvidersParam(watchRegionRaw);
   }
 
@@ -139,73 +166,101 @@ export async function GET(request: Request) {
     });
   }
 
-  let tmdbPage = Math.floor(offset / TMDB_PAGE_SIZE) + 1;
-  let skip = offset % TMDB_PAGE_SIZE;
-  const merged: NormalizedDiscoverMovie[] = [];
-  let totalResults = 0;
-  let totalPages = 1;
+  // How many TMDB results we need per language to fill one display page.
+  // With N languages, each needs ceil(RESULTS_PER_VIEW / N) items.
+  const langList = languages.length > 0 ? languages : [undefined];
+  const perLangNeeded = Math.ceil(RESULTS_PER_VIEW / langList.length);
+  // Each TMDB page gives 20 results; figure out how many pages we need.
+  const tmdbPagesNeeded = Math.ceil(perLangNeeded / TMDB_PAGE_SIZE);
+  const tmdbPageStart = Math.floor(offset / TMDB_PAGE_SIZE) + 1;
+  const skip = offset % TMDB_PAGE_SIZE;
 
-  const fetchOptions = { next: { revalidate: 3600 } as const };
-  const withOriginalLanguage = originalLanguageForDiscover(watchRegionRaw, language);
+  // Fetch enough TMDB pages per language in parallel
+  const fetchPromises: Promise<{
+    results: TmdbDiscoverMovieResult[];
+    totalResults: number;
+  } | null>[] = [];
+  const langIndex: number[] = [];
 
-  while (merged.length < RESULTS_PER_VIEW && tmdbPage <= TMDB_MAX_PAGE) {
-    const url = buildDiscoverUrl(
-      apiKey,
-      watchRegionRaw,
-      DISCOVER_RESPONSE_LANGUAGE,
-      watchProvidersFilter,
-      tmdbPage,
-      withOriginalLanguage,
-      sortBy,
-      genreIdStr,
-      releaseDateGte,
-      releaseDateLte
-    );
-    const res = await fetch(url, fetchOptions);
-
-    if (!res.ok) {
-      const text = await res.text();
-      return NextResponse.json(
-        { error: "TMDB request failed", status: res.status, detail: text.slice(0, 200) },
-        { status: 502 }
+  for (let li = 0; li < langList.length; li++) {
+    for (let p = 0; p < tmdbPagesNeeded; p++) {
+      fetchPromises.push(
+        fetchOnePage(
+          apiKey,
+          watchRegionRaw,
+          watchProvidersFilter,
+          tmdbPageStart + p,
+          langList[li],
+          sortBy,
+          genreIdStr,
+          releaseDateGte,
+          releaseDateLte
+        )
       );
+      langIndex.push(li);
     }
-
-    const data = (await res.json()) as TmdbDiscoverResponse;
-    if (totalResults === 0) {
-      totalResults = data.total_results;
-      const cappedItems = Math.min(totalResults, MAX_BROWSABLE_ITEMS);
-      totalPages =
-        totalResults === 0 ? 1 : Math.max(1, Math.ceil(cappedItems / RESULTS_PER_VIEW));
-      if (displayPage > totalPages || offset >= cappedItems) {
-        return NextResponse.json({
-          page: displayPage,
-          totalPages,
-          totalResults,
-          results: [],
-        });
-      }
-    }
-
-    const slice = data.results.slice(skip);
-    skip = 0;
-    for (const m of slice) {
-      merged.push(toNormalized(m));
-      if (merged.length >= RESULTS_PER_VIEW) break;
-    }
-
-    if (data.results.length === 0) break;
-    tmdbPage += 1;
   }
 
+  const allResults = await Promise.all(fetchPromises);
+
+  // Concatenate TMDB pages per language into one slice each
+  const langSlices: TmdbDiscoverMovieResult[][] = langList.map(() => []);
+  let maxTotalResults = 0;
+
+  for (let i = 0; i < allResults.length; i++) {
+    const result = allResults[i];
+    if (!result) continue;
+    if (result.totalResults > maxTotalResults) {
+      maxTotalResults = result.totalResults;
+    }
+    langSlices[langIndex[i]].push(...result.results);
+  }
+
+  // Apply skip only to the first batch of results
+  for (let li = 0; li < langSlices.length; li++) {
+    if (skip > 0) langSlices[li] = langSlices[li].slice(skip);
+  }
+
+  // Round-robin: take one result from each language in turn so every
+  // selected language gets fair representation on every page.
+  const seen = new Set<number>();
+  const merged: NormalizedDiscoverMovie[] = [];
+  const maxLen = Math.max(0, ...langSlices.map((s) => s.length));
+  for (let i = 0; i < maxLen && merged.length < RESULTS_PER_VIEW; i++) {
+    for (const slice of langSlices) {
+      if (i >= slice.length) continue;
+      const m = slice[i];
+      if (seen.has(m.id)) continue;
+      seen.add(m.id);
+      merged.push(toNormalized(m));
+    }
+  }
+
+  const cappedItems = Math.min(maxTotalResults, MAX_BROWSABLE_ITEMS);
+  const totalPages =
+    maxTotalResults === 0
+      ? 1
+      : Math.max(1, Math.ceil(cappedItems / RESULTS_PER_VIEW));
+
+  if (displayPage > totalPages || offset >= cappedItems) {
+    return NextResponse.json({
+      page: displayPage,
+      totalPages,
+      totalResults: maxTotalResults,
+      results: [],
+    });
+  }
+
+  const results = merged.slice(0, RESULTS_PER_VIEW);
+
   if (sortBy === "popularity.desc") {
-    merged.sort((a, b) => (b.releaseDate ?? "").localeCompare(a.releaseDate ?? ""));
+    results.sort((a, b) => (b.releaseDate ?? "").localeCompare(a.releaseDate ?? ""));
   }
 
   return NextResponse.json({
     page: displayPage,
     totalPages,
-    totalResults,
-    results: merged,
+    totalResults: maxTotalResults,
+    results,
   });
 }

@@ -1,20 +1,20 @@
 import { NextResponse } from "next/server";
 
 import { TMDB_API_V3_BASE, posterUrl } from "@/lib/tmdb/constants";
-import { originalLanguageForDiscover } from "@/lib/tmdb/discoverFilters";
 import { discoverAnyOttWatchProvidersParam } from "@/lib/tmdb/platforms";
 import { parseTvDiscoverSort } from "@/lib/tmdb/tvDiscoverSort";
+import { isValidContentLanguage } from "@/lib/regionLanguagePrefs";
 import type {
   NormalizedDiscoverTvShow,
   TmdbDiscoverTvResult,
   TmdbDiscoverTvResponse,
 } from "@/lib/tmdb/types";
 
-const ALLOWED_REGIONS = new Set(["IN", "US", "GB"]);
-const LANGUAGE_PATTERN = /^[a-z]{2}(-[A-Z]{2})?$/;
+const ALLOWED_REGIONS = new Set(["IN", "US", "GB", "CA", "NL", "AE"]);
 const TMDB_MAX_PAGE = 500;
 const TMDB_PAGE_SIZE = 20;
-const RESULTS_PER_VIEW = 24;
+const RESULTS_PER_VIEW = 30;
+const MAX_PARALLEL_LANGUAGES = 3;
 
 const DISCOVER_RESPONSE_LANGUAGE = "en-US";
 
@@ -69,6 +69,44 @@ function buildDiscoverTvUrl(
   return url.toString();
 }
 
+async function fetchOnePage(
+  apiKey: string,
+  watchRegion: string,
+  providerId: string | undefined,
+  tmdbPage: number,
+  withOriginalLanguage: string | undefined,
+  sortBy: string,
+  genreIdStr: string | undefined,
+  airDateGte: string | undefined,
+  airDateLte: string | undefined
+): Promise<{ results: TmdbDiscoverTvResult[]; totalResults: number } | null> {
+  const url = buildDiscoverTvUrl(
+    apiKey,
+    watchRegion,
+    DISCOVER_RESPONSE_LANGUAGE,
+    providerId,
+    tmdbPage,
+    withOriginalLanguage,
+    sortBy,
+    genreIdStr,
+    airDateGte,
+    airDateLte
+  );
+  const res = await fetch(url, { next: { revalidate: 3600 } });
+  if (!res.ok) return null;
+  const data = (await res.json()) as TmdbDiscoverTvResponse;
+  return { results: data.results, totalResults: data.total_results };
+}
+
+function parseLanguages(param: string | null): string[] {
+  if (!param) return [];
+  return param
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(isValidContentLanguage)
+    .slice(0, MAX_PARALLEL_LANGUAGES);
+}
+
 export async function GET(request: Request) {
   const apiKey = process.env.TMDB_API_KEY;
   if (!apiKey) {
@@ -80,7 +118,7 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const watchRegionRaw = (searchParams.get("watchRegion") ?? "IN").toUpperCase();
-  const language = searchParams.get("language") ?? "en-US";
+  const languages = parseLanguages(searchParams.get("languages"));
   const providerIdParam = searchParams.get("providerId");
   const pageRaw = searchParams.get("page");
   const pageParsed = pageRaw == null || pageRaw === "" ? 1 : Number(pageRaw);
@@ -91,9 +129,6 @@ export async function GET(request: Request) {
 
   if (!ALLOWED_REGIONS.has(watchRegionRaw)) {
     return NextResponse.json({ error: "Invalid watchRegion" }, { status: 400 });
-  }
-  if (!LANGUAGE_PATTERN.test(language)) {
-    return NextResponse.json({ error: "Invalid language" }, { status: 400 });
   }
 
   const sortBy = parseTvDiscoverSort(searchParams.get("sortBy"));
@@ -131,73 +166,95 @@ export async function GET(request: Request) {
     });
   }
 
-  let tmdbPage = Math.floor(offset / TMDB_PAGE_SIZE) + 1;
-  let skip = offset % TMDB_PAGE_SIZE;
-  const merged: NormalizedDiscoverTvShow[] = [];
-  let totalResults = 0;
-  let totalPages = 1;
+  const langList = languages.length > 0 ? languages : [undefined];
+  const perLangNeeded = Math.ceil(RESULTS_PER_VIEW / langList.length);
+  const tmdbPagesNeeded = Math.ceil(perLangNeeded / TMDB_PAGE_SIZE);
+  const tmdbPageStart = Math.floor(offset / TMDB_PAGE_SIZE) + 1;
+  const skip = offset % TMDB_PAGE_SIZE;
 
-  const fetchOptions = { next: { revalidate: 3600 } as const };
-  const withOriginalLanguage = originalLanguageForDiscover(watchRegionRaw, language);
+  const fetchPromises: Promise<{
+    results: TmdbDiscoverTvResult[];
+    totalResults: number;
+  } | null>[] = [];
+  const langIdx: number[] = [];
 
-  while (merged.length < RESULTS_PER_VIEW && tmdbPage <= TMDB_MAX_PAGE) {
-    const url = buildDiscoverTvUrl(
-      apiKey,
-      watchRegionRaw,
-      DISCOVER_RESPONSE_LANGUAGE,
-      providerId,
-      tmdbPage,
-      withOriginalLanguage,
-      sortBy,
-      genreIdStr,
-      airDateGte,
-      airDateLte
-    );
-    const res = await fetch(url, fetchOptions);
-
-    if (!res.ok) {
-      const text = await res.text();
-      return NextResponse.json(
-        { error: "TMDB request failed", status: res.status, detail: text.slice(0, 200) },
-        { status: 502 }
+  for (let li = 0; li < langList.length; li++) {
+    for (let p = 0; p < tmdbPagesNeeded; p++) {
+      fetchPromises.push(
+        fetchOnePage(
+          apiKey,
+          watchRegionRaw,
+          providerId,
+          tmdbPageStart + p,
+          langList[li],
+          sortBy,
+          genreIdStr,
+          airDateGte,
+          airDateLte
+        )
       );
+      langIdx.push(li);
     }
-
-    const data = (await res.json()) as TmdbDiscoverTvResponse;
-    if (totalResults === 0) {
-      totalResults = data.total_results;
-      const cappedItems = Math.min(totalResults, MAX_BROWSABLE_ITEMS);
-      totalPages =
-        totalResults === 0 ? 1 : Math.max(1, Math.ceil(cappedItems / RESULTS_PER_VIEW));
-      if (displayPage > totalPages || offset >= cappedItems) {
-        return NextResponse.json({
-          page: displayPage,
-          totalPages,
-          totalResults,
-          results: [],
-        });
-      }
-    }
-
-    const slice = data.results.slice(skip);
-    skip = 0;
-    for (const m of slice) {
-      merged.push(toNormalized(m));
-      if (merged.length >= RESULTS_PER_VIEW) break;
-    }
-
-    if (data.results.length === 0) break;
-    tmdbPage += 1;
   }
 
+  const allResults = await Promise.all(fetchPromises);
+
+  const langSlices: TmdbDiscoverTvResult[][] = langList.map(() => []);
+  let maxTotalResults = 0;
+
+  for (let i = 0; i < allResults.length; i++) {
+    const result = allResults[i];
+    if (!result) continue;
+    if (result.totalResults > maxTotalResults) {
+      maxTotalResults = result.totalResults;
+    }
+    langSlices[langIdx[i]].push(...result.results);
+  }
+
+  for (let li = 0; li < langSlices.length; li++) {
+    if (skip > 0) langSlices[li] = langSlices[li].slice(skip);
+  }
+
+  const seen = new Set<number>();
+  const merged: NormalizedDiscoverTvShow[] = [];
+  const maxLen = Math.max(0, ...langSlices.map((s) => s.length));
+  for (let i = 0; i < maxLen && merged.length < RESULTS_PER_VIEW; i++) {
+    for (const slice of langSlices) {
+      if (i >= slice.length) continue;
+      const m = slice[i];
+      if (seen.has(m.id)) continue;
+      seen.add(m.id);
+      merged.push(toNormalized(m));
+    }
+  }
+
+  const cappedItems = Math.min(maxTotalResults, MAX_BROWSABLE_ITEMS);
+  const totalPages =
+    maxTotalResults === 0
+      ? 1
+      : Math.max(1, Math.ceil(cappedItems / RESULTS_PER_VIEW));
+
+  if (displayPage > totalPages || offset >= cappedItems) {
+    return NextResponse.json({
+      page: displayPage,
+      totalPages,
+      totalResults: maxTotalResults,
+      results: [],
+    });
+  }
+
+  const results = merged.slice(0, RESULTS_PER_VIEW);
+
   if (sortBy === "popularity.desc") {
-    merged.sort((a, b) => (b.firstAirDate ?? "").localeCompare(a.firstAirDate ?? ""));
+    results.sort((a, b) =>
+      (b.firstAirDate ?? "").localeCompare(a.firstAirDate ?? "")
+    );
   }
 
   return NextResponse.json({
     page: displayPage,
     totalPages,
-    totalResults,
-    results: merged,
+    totalResults: maxTotalResults,
+    results,
   });
 }

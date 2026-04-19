@@ -1,12 +1,13 @@
 import type { Movie } from "@/components/MoviesRow";
-import type { UiLanguageCode, WatchRegionCode } from "@/lib/regionLanguagePrefs";
+import type { ContentLanguageCode, WatchRegionCode } from "@/lib/regionLanguagePrefs";
 import { TMDB_API_V3_BASE, posterUrl } from "@/lib/tmdb/constants";
-import { originalLanguageForDiscover } from "@/lib/tmdb/discoverFilters";
 import { discoverAnyOttWatchProvidersParam } from "@/lib/tmdb/platforms";
 import { getCuratedHomeRows } from "@/lib/db/getCuratedHomeRows";
 
 const REVALIDATE_SEC = 900;
 const LIST_LANGUAGE = "en-US";
+const MAX_PER_ROW = 12;
+const MAX_PARALLEL_LANGUAGES = 3;
 
 type HomeRows = {
   theatres: Movie[];
@@ -78,55 +79,44 @@ function mapTv(items: TvListItem[] | undefined, limit: number): Movie[] {
   return out;
 }
 
+function dedup(items: Movie[], limit: number): Movie[] {
+  const seen = new Set<number>();
+  const out: Movie[] = [];
+  for (const m of items) {
+    if (m.id != null) {
+      if (seen.has(m.id)) continue;
+      seen.add(m.id);
+    }
+    out.push(m);
+    if (out.length >= limit) break;
+  }
+  return out;
+}
+
 export async function getHomeRows(prefs: {
   watchRegion: WatchRegionCode;
-  language: UiLanguageCode;
+  languages: ContentLanguageCode[];
 }): Promise<HomeRows> {
-  // Try admin-curated data first
   const curated = await getCuratedHomeRows();
   if (curated) {
     return { ...curated, anime: [] };
   }
 
-  // Fall back to TMDB API
-  const apiKey = process.env.TMDB_API_KEY;
-  if (!apiKey) return { theatres: [], ottMovies: [], ottSeries: [], anime: [] };
+  const key = process.env.TMDB_API_KEY;
+  if (!key) return { theatres: [], ottMovies: [], ottSeries: [], anime: [] };
+  const apiKey: string = key;
 
-  const withOriginalLanguage = originalLanguageForDiscover(prefs.watchRegion, prefs.language);
+  const langs = prefs.languages.slice(0, MAX_PARALLEL_LANGUAGES);
+  const ottProviders = discoverAnyOttWatchProvidersParam(prefs.watchRegion);
 
+  // Theatres: region-based, no language filter
   const nowPlayingUrl = new URL(`${TMDB_API_V3_BASE}/movie/now_playing`);
   nowPlayingUrl.searchParams.set("api_key", apiKey);
   nowPlayingUrl.searchParams.set("language", LIST_LANGUAGE);
   nowPlayingUrl.searchParams.set("region", prefs.watchRegion);
   nowPlayingUrl.searchParams.set("page", "1");
 
-  const ottMoviesUrl = new URL(`${TMDB_API_V3_BASE}/discover/movie`);
-  ottMoviesUrl.searchParams.set("api_key", apiKey);
-  ottMoviesUrl.searchParams.set("watch_region", prefs.watchRegion);
-  ottMoviesUrl.searchParams.set("language", LIST_LANGUAGE);
-  ottMoviesUrl.searchParams.set("sort_by", "popularity.desc");
-  ottMoviesUrl.searchParams.set("include_adult", "false");
-  ottMoviesUrl.searchParams.set("page", "1");
-  ottMoviesUrl.searchParams.set(
-    "with_watch_providers",
-    discoverAnyOttWatchProvidersParam(prefs.watchRegion)
-  );
-  ottMoviesUrl.searchParams.set("with_watch_monetization_types", "flatrate|rent|buy");
-  if (withOriginalLanguage) {
-    ottMoviesUrl.searchParams.set("with_original_language", withOriginalLanguage);
-  }
-
-  const ottSeriesUrl = new URL(`${TMDB_API_V3_BASE}/discover/tv`);
-  ottSeriesUrl.searchParams.set("api_key", apiKey);
-  ottSeriesUrl.searchParams.set("watch_region", prefs.watchRegion);
-  ottSeriesUrl.searchParams.set("language", LIST_LANGUAGE);
-  ottSeriesUrl.searchParams.set("sort_by", "popularity.desc");
-  ottSeriesUrl.searchParams.set("include_adult", "false");
-  ottSeriesUrl.searchParams.set("page", "1");
-  if (withOriginalLanguage) {
-    ottSeriesUrl.searchParams.set("with_original_language", withOriginalLanguage);
-  }
-
+  // Anime: hardcoded Japanese
   const animeUrl = new URL(`${TMDB_API_V3_BASE}/discover/tv`);
   animeUrl.searchParams.set("api_key", apiKey);
   animeUrl.searchParams.set("language", LIST_LANGUAGE);
@@ -137,18 +127,75 @@ export async function getHomeRows(prefs: {
   animeUrl.searchParams.set("with_origin_country", "JP");
   animeUrl.searchParams.set("with_original_language", "ja");
 
-  const [theatresRaw, ottMoviesRaw, ottSeriesRaw, animeRaw] = await Promise.all([
-    fetchJson<{ results?: MovieListItem[] }>(nowPlayingUrl.toString()),
-    fetchJson<{ results?: MovieListItem[] }>(ottMoviesUrl.toString()),
-    fetchJson<{ results?: TvListItem[] }>(ottSeriesUrl.toString()),
-    fetchJson<{ results?: TvListItem[] }>(animeUrl.toString()),
+  const today = new Date().toISOString().slice(0, 10);
+
+  // OTT movies/series: parallel per language
+  function buildOttMovieUrl(lang: string): string {
+    const url = new URL(`${TMDB_API_V3_BASE}/discover/movie`);
+    url.searchParams.set("api_key", apiKey);
+    url.searchParams.set("watch_region", prefs.watchRegion);
+    url.searchParams.set("language", LIST_LANGUAGE);
+    url.searchParams.set("sort_by", "popularity.desc");
+    url.searchParams.set("include_adult", "false");
+    url.searchParams.set("page", "1");
+    url.searchParams.set("with_watch_providers", ottProviders);
+    url.searchParams.set("with_watch_monetization_types", "flatrate|rent|buy");
+    url.searchParams.set("with_original_language", lang);
+    // Only include movies already released via digital/physical/TV — excludes
+    // theatrical-only and unreleased titles (TMDB release types 4, 5, 6).
+    url.searchParams.set("with_release_type", "4|5|6");
+    url.searchParams.set("primary_release_date.lte", today);
+    return url.toString();
+  }
+
+  function buildOttSeriesUrl(lang: string): string {
+    const url = new URL(`${TMDB_API_V3_BASE}/discover/tv`);
+    url.searchParams.set("api_key", apiKey);
+    url.searchParams.set("watch_region", prefs.watchRegion);
+    url.searchParams.set("language", LIST_LANGUAGE);
+    url.searchParams.set("sort_by", "popularity.desc");
+    url.searchParams.set("include_adult", "false");
+    url.searchParams.set("page", "1");
+    url.searchParams.set("with_original_language", lang);
+    return url.toString();
+  }
+
+  type MovieResults = { results?: MovieListItem[] };
+  type TvResults = { results?: TvListItem[] };
+
+  const [theatresRaw, animeRaw, ...ottResults] = await Promise.all([
+    fetchJson<MovieResults>(nowPlayingUrl.toString()),
+    fetchJson<TvResults>(animeUrl.toString()),
+    ...langs.map((lang) => fetchJson<MovieResults>(buildOttMovieUrl(lang))),
+    ...langs.map((lang) => fetchJson<TvResults>(buildOttSeriesUrl(lang))),
   ]);
 
+  const ottMovieResults = ottResults.slice(0, langs.length) as (MovieResults | null)[];
+  const ottSeriesResults = ottResults.slice(langs.length) as (TvResults | null)[];
+
+  // Round-robin interleave so every selected language gets fair visibility
+  const movieSlices = ottMovieResults.map((r) =>
+    mapMovies(r?.results, MAX_PER_ROW)
+  );
+  const seriesSlices = ottSeriesResults.map((r) =>
+    mapTv(r?.results, MAX_PER_ROW)
+  );
+
+  function interleave(slices: Movie[][]): Movie[] {
+    const out: Movie[] = [];
+    const maxLen = Math.max(0, ...slices.map((s) => s.length));
+    for (let i = 0; i < maxLen; i++) {
+      for (const slice of slices) {
+        if (i < slice.length) out.push(slice[i]);
+      }
+    }
+    return out;
+  }
+
   return {
-    theatres: mapMovies(theatresRaw?.results, 12),
-    ottMovies: mapMovies(ottMoviesRaw?.results, 12),
-    ottSeries: mapTv(ottSeriesRaw?.results, 12),
-    anime: mapTv(animeRaw?.results, 12),
+    theatres: mapMovies(theatresRaw?.results, MAX_PER_ROW),
+    ottMovies: dedup(interleave(movieSlices), MAX_PER_ROW),
+    ottSeries: dedup(interleave(seriesSlices), MAX_PER_ROW),
+    anime: mapTv(animeRaw?.results, MAX_PER_ROW),
   };
 }
-

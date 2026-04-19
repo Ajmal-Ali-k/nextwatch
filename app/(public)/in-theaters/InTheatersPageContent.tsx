@@ -31,15 +31,16 @@ function regionLabel(code: string): string {
 }
 
 export default function InTheatersPageContent() {
-  const { watchRegion, language } = useRegionLanguage();
+  const { watchRegion, languages } = useRegionLanguage();
+  const languagesParam = languages.join(",");
   const { page, replacePage } = useInTheatersPageUrl();
 
   const query = useQuery({
-    queryKey: ["movies-now-playing", watchRegion, language, page],
+    queryKey: ["movies-now-playing", watchRegion, languagesParam, page],
     queryFn: async ({ signal }) => {
       const params = new URLSearchParams({
         watchRegion,
-        language,
+        languages: languagesParam,
         page: String(page),
       });
       const res = await fetch(`/api/movies/now-playing?${params.toString()}`, { signal });

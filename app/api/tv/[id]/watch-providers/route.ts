@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { TMDB_API_V3_BASE, providerLogoUrl } from "@/lib/tmdb/constants";
 import { withWatchUrls, type WatchProviderMonetization } from "@/lib/tmdb/watchProviderOutboundLinks";
 
-const ALLOWED_REGIONS = new Set(["IN", "US", "GB"]);
+const ALLOWED_REGIONS = new Set(["IN", "US", "GB", "CA", "NL", "AE"]);
 
 type TmdbProviderRow = {
   provider_id: number;

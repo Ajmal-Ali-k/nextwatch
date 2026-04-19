@@ -71,7 +71,8 @@ function formatReleaseDate(iso: string): string {
 const MAX_PAGE_BUTTONS = 9;
 
 export default function TvShowsPageContent() {
-  const { watchRegion, language } = useRegionLanguage();
+  const { watchRegion, languages } = useRegionLanguage();
+  const languagesParam = languages.join(",");
   const { parsed, replace, searchParams } = useTvShowsDiscoverUrl();
   const page = parsed.page;
   const sortBy = parsed.sortBy;
@@ -136,10 +137,10 @@ export default function TvShowsPageContent() {
   }, [platformUnavailable, replace]);
 
   const genresQuery = useQuery({
-    queryKey: ["tv-genres", language, "fill-empty-names"],
+    queryKey: ["tv-genres", "en-US", "fill-empty-names"],
     queryFn: async ({ signal }) => {
       const res = await fetch(
-        `/api/tv/genres?language=${encodeURIComponent(language)}`,
+        `/api/tv/genres?language=en-US`,
         { signal }
       );
       const data = (await res.json()) as GenresJson & { error?: string };
@@ -220,7 +221,7 @@ export default function TvShowsPageContent() {
     queryKey: [
       "tv-discover",
       watchRegion,
-      language,
+      languagesParam,
       page,
       providerId ?? "all",
       sortBy,
@@ -229,7 +230,7 @@ export default function TvShowsPageContent() {
     queryFn: async ({ signal }) => {
       const params = new URLSearchParams({
         watchRegion,
-        language,
+        languages: languagesParam,
         page: String(page),
         sortBy,
       });

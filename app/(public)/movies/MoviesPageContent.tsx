@@ -70,7 +70,8 @@ function formatReleaseDate(iso: string): string {
 const MAX_PAGE_BUTTONS = 9;
 
 export default function MoviesPageContent() {
-  const { watchRegion, language } = useRegionLanguage();
+  const { watchRegion, languages } = useRegionLanguage();
+  const languagesParam = languages.join(",");
   const { parsed, replace, searchParams } = useMoviesDiscoverUrl();
   const page = parsed.page;
   const sortBy = parsed.sortBy;
@@ -128,10 +129,10 @@ export default function MoviesPageContent() {
   }, [platformUnavailable, replace]);
 
   const genresQuery = useQuery({
-    queryKey: ["movie-genres", language, "fill-empty-names"],
+    queryKey: ["movie-genres", "en-US", "fill-empty-names"],
     queryFn: async ({ signal }) => {
       const res = await fetch(
-        `/api/movies/genres?language=${encodeURIComponent(language)}`,
+        `/api/movies/genres?language=en-US`,
         { signal }
       );
       const data = (await res.json()) as GenresJson & { error?: string };
@@ -212,7 +213,7 @@ export default function MoviesPageContent() {
     queryKey: [
       "movies-discover",
       watchRegion,
-      language,
+      languagesParam,
       page,
       providerId ?? "all",
       sortBy,
@@ -221,7 +222,7 @@ export default function MoviesPageContent() {
     queryFn: async ({ signal }) => {
       const params = new URLSearchParams({
         watchRegion,
-        language,
+        languages: languagesParam,
         page: String(page),
         sortBy,
       });
