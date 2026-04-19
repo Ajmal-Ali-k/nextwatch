@@ -1,10 +1,11 @@
 "use client";
 
 import Image from "next/image";
-import { ArrowUp, ArrowDown, Trash2 } from "lucide-react";
+import { GripVertical, Trash2 } from "lucide-react";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import type { HeroSlideItem, HeroSlideSource } from "@/lib/db/heroSection";
 
@@ -21,37 +22,57 @@ const SOURCE_LABELS: Record<HeroSlideSource, string> = {
 export function HeroSlideCard({
   item,
   index,
-  total,
-  onMoveUp,
-  onMoveDown,
+  sortableId,
   onRemove,
-  onMoveTo,
 }: {
   item: HeroSlideItem;
   index: number;
-  total: number;
-  onMoveUp: () => void;
-  onMoveDown: () => void;
+  sortableId: string;
   onRemove: () => void;
-  onMoveTo: (newIndex: number) => void;
 }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: sortableId });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
   return (
-    <tr className="border-b last:border-b-0 hover:bg-gray-50/50">
-      {/* Position */}
-      <td className="w-16 py-2 pl-3 pr-1">
-        <Input
-          type="number"
-          min={1}
-          max={total}
-          value={index + 1}
-          onChange={(e) => {
-            const v = parseInt(e.target.value, 10);
-            if (!Number.isNaN(v) && v >= 1 && v <= total) {
-              onMoveTo(v - 1);
-            }
-          }}
-          className="h-8 w-14 text-center text-sm tabular-nums"
-        />
+    <tr
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        "border-b last:border-b-0",
+        isDragging
+          ? "relative z-50 bg-white shadow-lg shadow-black/10 ring-2 ring-gray-900/10"
+          : "hover:bg-gray-50/50"
+      )}
+    >
+      {/* Drag handle + position */}
+      <td className="w-16 py-2 pl-2 pr-1">
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            className={cn(
+              "flex size-7 cursor-grab items-center justify-center rounded text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600",
+              isDragging && "cursor-grabbing text-gray-600"
+            )}
+            {...attributes}
+            {...listeners}
+          >
+            <GripVertical className="size-4" />
+          </button>
+          <span className="text-xs tabular-nums text-gray-400 select-none">
+            {index + 1}
+          </span>
+        </div>
       </td>
 
       {/* Thumbnail */}
@@ -93,28 +114,8 @@ export function HeroSlideCard({
       </td>
 
       {/* Actions */}
-      <td className="w-28 py-2 pr-3">
-        <div className="flex items-center justify-end gap-0.5">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-7"
-            disabled={index === 0}
-            onClick={onMoveUp}
-            title="Move up"
-          >
-            <ArrowUp className="size-3.5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-7"
-            disabled={index === total - 1}
-            onClick={onMoveDown}
-            title="Move down"
-          >
-            <ArrowDown className="size-3.5" />
-          </Button>
+      <td className="w-20 py-2 pr-3">
+        <div className="flex items-center justify-end">
           <Button
             variant="ghost"
             size="icon"

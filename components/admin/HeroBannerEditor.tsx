@@ -4,6 +4,22 @@ import { useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Save, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import type { DragEndEvent } from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  arrayMove,
+  sortableKeyboardCoordinates,
+} from "@dnd-kit/sortable";
+import { restrictToVerticalAxis, restrictToParentElement } from "@dnd-kit/modifiers";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -13,6 +29,10 @@ import { HeroUploadForm } from "./HeroUploadForm";
 import type { HeroSlideItem } from "@/lib/db/heroSection";
 
 type AddTab = "search" | "upload";
+
+function getSortableId(item: HeroSlideItem, index: number) {
+  return `${item.source}-${item.tmdbId ?? item.s3Key ?? index}`;
+}
 
 export function HeroBannerEditor({
   initialItems,
@@ -24,8 +44,23 @@ export function HeroBannerEditor({
   const [saving, setSaving] = useState(false);
   const [addTab, setAddTab] = useState<AddTab>("search");
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const sortableIds = useMemo(
+    () => items.map((item, i) => getSortableId(item, i)),
+    [items]
+  );
+
   const existingTmdbIds = useMemo(
-    () => new Set(items.filter((it) => it.tmdbId !== null).map((it) => it.tmdbId!)),
+    () =>
+      new Set(
+        items.filter((it) => it.tmdbId !== null).map((it) => it.tmdbId!)
+      ),
     [items]
   );
 
@@ -48,33 +83,17 @@ export function HeroBannerEditor({
     setItems((prev) => prev.filter((_, i) => i !== index));
   }, []);
 
-  const handleMoveUp = useCallback((index: number) => {
-    if (index === 0) return;
-    setItems((prev) => {
-      const next = [...prev];
-      [next[index - 1], next[index]] = [next[index], next[index - 1]];
-      return next;
-    });
-  }, []);
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
 
-  const handleMoveDown = useCallback((index: number) => {
     setItems((prev) => {
-      if (index >= prev.length - 1) return prev;
-      const next = [...prev];
-      [next[index], next[index + 1]] = [next[index + 1], next[index]];
-      return next;
+      const oldIndex = sortableIds.indexOf(String(active.id));
+      const newIndex = sortableIds.indexOf(String(over.id));
+      if (oldIndex === -1 || newIndex === -1) return prev;
+      return arrayMove(prev, oldIndex, newIndex);
     });
-  }, []);
-
-  const handleMoveTo = useCallback((from: number, to: number) => {
-    setItems((prev) => {
-      if (to < 0 || to >= prev.length) return prev;
-      const next = [...prev];
-      const [moved] = next.splice(from, 1);
-      next.splice(to, 0, moved);
-      return next;
-    });
-  }, []);
+  }
 
   async function handleSave() {
     setSaving(true);
@@ -110,7 +129,7 @@ export function HeroBannerEditor({
           <h1 className="text-2xl font-bold">Hero Banner</h1>
           <p className="text-sm text-gray-500">
             {items.length} {items.length === 1 ? "slide" : "slides"} &middot;
-            Auto-advances every 3.5s on the homepage
+            Drag to reorder &middot; Auto-advances every 3.5s on the homepage
           </p>
         </div>
         <Button onClick={handleSave} disabled={saving || !hasChanges}>
@@ -132,35 +151,50 @@ export function HeroBannerEditor({
                 No slides yet. Add from TMDB or upload a custom image.
               </p>
             ) : (
-              <div className="max-h-[calc(100vh-260px)] overflow-y-auto">
-                <table className="w-full text-left">
-                  <thead className="sticky top-0 z-10 bg-gray-50 text-xs text-gray-500 uppercase tracking-wider">
-                    <tr>
-                      <th className="py-2 pl-3 pr-1 font-medium w-16">#</th>
-                      <th className="py-2 px-2 font-medium w-40">Preview</th>
-                      <th className="py-2 pr-2 font-medium">Title</th>
-                      <th className="py-2 px-1 font-medium w-20">Source</th>
-                      <th className="py-2 pr-3 font-medium text-right w-28">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {items.map((item, index) => (
-                      <HeroSlideCard
-                        key={`${item.source}-${item.tmdbId ?? item.s3Key ?? index}`}
-                        item={item}
-                        index={index}
-                        total={items.length}
-                        onMoveUp={() => handleMoveUp(index)}
-                        onMoveDown={() => handleMoveDown(index)}
-                        onRemove={() => handleRemove(index)}
-                        onMoveTo={(to) => handleMoveTo(index, to)}
-                      />
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                modifiers={[restrictToVerticalAxis, restrictToParentElement]}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext
+                  items={sortableIds}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <div className="max-h-[calc(100vh-260px)] overflow-y-auto">
+                    <table className="w-full text-left">
+                      <thead className="sticky top-0 z-10 bg-gray-50 text-xs text-gray-500 uppercase tracking-wider">
+                        <tr>
+                          <th className="py-2 pl-2 pr-1 font-medium w-16">
+                            #
+                          </th>
+                          <th className="py-2 px-2 font-medium w-40">
+                            Preview
+                          </th>
+                          <th className="py-2 pr-2 font-medium">Title</th>
+                          <th className="py-2 px-1 font-medium w-20">
+                            Source
+                          </th>
+                          <th className="py-2 pr-3 font-medium text-right w-20">
+                            Actions
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {items.map((item, index) => (
+                          <HeroSlideCard
+                            key={sortableIds[index]}
+                            sortableId={sortableIds[index]}
+                            item={item}
+                            index={index}
+                            onRemove={() => handleRemove(index)}
+                          />
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </SortableContext>
+              </DndContext>
             )}
           </CardContent>
         </Card>
