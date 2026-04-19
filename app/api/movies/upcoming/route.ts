@@ -7,10 +7,10 @@ import type {
   TmdbDiscoverResponse,
 } from "@/lib/tmdb/types";
 
-const ALLOWED_REGIONS = new Set(["IN", "US", "GB"]);
+const ALLOWED_REGIONS = new Set(["IN", "US", "GB", "CA", "NL", "AE"]);
 const TMDB_MAX_PAGE = 500;
 const TMDB_PAGE_SIZE = 20;
-const RESULTS_PER_VIEW = 24;
+const RESULTS_PER_VIEW = 30;
 const UPCOMING_RESPONSE_LANGUAGE = "en-US";
 
 const MAX_BROWSABLE_ITEMS = TMDB_MAX_PAGE * TMDB_PAGE_SIZE;

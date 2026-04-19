@@ -1,21 +1,18 @@
 import { NextResponse } from "next/server";
 
 import { TMDB_API_V3_BASE, posterUrl } from "@/lib/tmdb/constants";
-import { originalLanguageForDiscover } from "@/lib/tmdb/discoverFilters";
+import { isValidContentLanguage } from "@/lib/regionLanguagePrefs";
 import type {
   NormalizedDiscoverMovie,
   TmdbDiscoverMovieResult,
   TmdbDiscoverResponse,
 } from "@/lib/tmdb/types";
 
-const ALLOWED_REGIONS = new Set(["IN", "US", "GB"]);
-/** TMDB now_playing uses the same page cap as other movie lists. */
+const ALLOWED_REGIONS = new Set(["IN", "US", "GB", "CA", "NL", "AE"]);
 const TMDB_MAX_PAGE = 500;
 const TMDB_PAGE_SIZE = 20;
-/** Merge TMDB pages so each UI page shows this many movies (same as discover). */
-const RESULTS_PER_VIEW = 24;
+const RESULTS_PER_VIEW = 30;
 
-/** English titles on cards; region still scopes theatrical releases. */
 const NOW_PLAYING_RESPONSE_LANGUAGE = "en-US";
 
 const MAX_BROWSABLE_ITEMS = TMDB_MAX_PAGE * TMDB_PAGE_SIZE;
@@ -47,6 +44,16 @@ function buildNowPlayingUrl(
   return url.toString();
 }
 
+function parseLanguages(param: string | null): Set<string> {
+  if (!param) return new Set();
+  return new Set(
+    param
+      .split(",")
+      .map((s) => s.trim().toLowerCase())
+      .filter(isValidContentLanguage)
+  );
+}
+
 export async function GET(request: Request) {
   const apiKey = process.env.TMDB_API_KEY;
   if (!apiKey) {
@@ -58,8 +65,7 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const watchRegionRaw = (searchParams.get("watchRegion") ?? "IN").toUpperCase();
-  const language = searchParams.get("language") ?? "";
-  const preferredLang = originalLanguageForDiscover(watchRegionRaw, language);
+  const preferredLangs = parseLanguages(searchParams.get("languages"));
   const pageRaw = searchParams.get("page");
   const pageParsed = pageRaw == null || pageRaw === "" ? 1 : Number(pageRaw);
   if (!Number.isInteger(pageParsed) || pageParsed < 1 || pageParsed > MAX_DISPLAY_PAGE) {
@@ -128,16 +134,15 @@ export async function GET(request: Request) {
     tmdbPage += 1;
   }
 
-  merged.sort((a, b) => {
-    if (preferredLang) {
-      const aMatch = a.originalLanguage === preferredLang ? 0 : 1;
-      const bMatch = b.originalLanguage === preferredLang ? 0 : 1;
+  if (preferredLangs.size > 0) {
+    merged.sort((a, b) => {
+      const aMatch = a.originalLanguage && preferredLangs.has(a.originalLanguage) ? 0 : 1;
+      const bMatch = b.originalLanguage && preferredLangs.has(b.originalLanguage) ? 0 : 1;
       if (aMatch !== bMatch) return aMatch - bMatch;
-    }
-    return (b.releaseDate ?? "").localeCompare(a.releaseDate ?? "");
-  });
+      return (b.releaseDate ?? "").localeCompare(a.releaseDate ?? "");
+    });
+  }
 
-  // Strip internal field before sending to client
   const results: NormalizedDiscoverMovie[] = merged.map(
     ({ originalLanguage: _, ...rest }) => rest
   );

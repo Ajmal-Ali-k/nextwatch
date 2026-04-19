@@ -77,6 +77,26 @@ const PROVIDER_IDS: Record<string, Partial<Record<OttPlatformKey, number>>> = {
     youtube: 192,
     apple: 350,
   },
+  CA: {
+    netflix: 8,
+    prime: 9,
+    jiohotstar: 337,
+    youtube: 192,
+    apple: 350,
+  },
+  NL: {
+    netflix: 8,
+    prime: 119,
+    jiohotstar: 337,
+    youtube: 192,
+    apple: 350,
+  },
+  AE: {
+    netflix: 8,
+    prime: 119,
+    youtube: 192,
+    apple: 350,
+  },
 };
 
 /** Major keys that map to streaming options meaningful only for watch_region IN. */

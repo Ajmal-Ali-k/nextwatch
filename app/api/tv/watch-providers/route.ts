@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { TMDB_API_V3_BASE } from "@/lib/tmdb/constants";
 
-const ALLOWED_REGIONS = new Set(["IN", "US", "GB"]);
+const ALLOWED_REGIONS = new Set(["IN", "US", "GB", "CA", "NL", "AE"]);
 const LANGUAGE_PATTERN = /^[a-z]{2}(-[A-Z]{2})?$/;
 
 type TmdbWatchProviderItem = {

@@ -1,10 +1,10 @@
 import { useCallback, useMemo } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
-/** Aligned with `/api/movies/now-playing` display page cap (24 results per page). */
+/** Aligned with `/api/movies/now-playing` display page cap (30 results per page). */
 const TMDB_MAX_PAGE = 500;
 const TMDB_PAGE_SIZE = 20;
-const RESULTS_PER_VIEW = 24;
+const RESULTS_PER_VIEW = 30;
 const MAX_PAGE = Math.ceil((TMDB_MAX_PAGE * TMDB_PAGE_SIZE) / RESULTS_PER_VIEW);
 
 export function parseInTheatersPage(raw: string | null): number {

@@ -1,25 +1,11 @@
+import type { ContentLanguageCode } from "@/lib/regionLanguagePrefs";
+
 /**
- * TMDB discover `with_original_language` expects ISO 639-1 codes.
- * Maps our UI locale (region + language) to filter movies by original spoken language.
+ * Build the `with_original_language` value for a single TMDB discover request.
+ * ContentLanguageCode is already ISO 639-1, so this is a passthrough.
  */
-export function originalLanguageForDiscover(
-  watchRegion: string,
-  uiLanguage: string
-): string | undefined {
-  const region = watchRegion.toUpperCase();
-
-  if (region === "IN") {
-    const map: Record<string, string> = {
-      "hi-IN": "hi",
-      "ta-IN": "ta",
-      "te-IN": "te",
-      "ml-IN": "ml",
-    };
-    return map[uiLanguage];
-  }
-
-  if (region === "US" && uiLanguage === "en-US") return "en";
-  if (region === "GB" && uiLanguage === "en-GB") return "en";
-
-  return undefined;
+export function originalLanguageParam(
+  lang: ContentLanguageCode
+): string {
+  return lang;
 }

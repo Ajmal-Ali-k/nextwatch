@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronDown } from "lucide-react";
-import { LocaleMenuPopover } from "@/components/LocaleMenu";
+import { RegionPopover } from "@/components/LocaleMenu";
 import { WATCH_REGIONS, useRegionLanguage } from "@/components/RegionLanguageProvider";
 import { cn } from "@/lib/utils";
 
@@ -109,7 +109,8 @@ export default function ReleaseCalendarPage() {
   const [activeTab, setActiveTab] = useState<TabKey>("In Theatres");
   const [localeOpen, setLocaleOpen] = useState(false);
   const localeRef = useRef<HTMLDivElement>(null);
-  const { watchRegion, language } = useRegionLanguage();
+  const { watchRegion, languages } = useRegionLanguage();
+  const languagesParam = languages.join(",");
 
   useEffect(() => {
     function handlePointerDown(event: MouseEvent) {
@@ -122,7 +123,7 @@ export default function ReleaseCalendarPage() {
   }, []);
 
   const calendarQuery = useQuery<CalendarMovie[]>({
-    queryKey: ["calendar-page", activeTab, watchRegion, language],
+    queryKey: ["calendar-page", activeTab, watchRegion, languagesParam],
     queryFn: async () => {
       if (activeTab === "In Theatres") {
         const region = encodeURIComponent(watchRegion);
@@ -159,7 +160,7 @@ export default function ReleaseCalendarPage() {
         const { gte, lte } = dateRange(1, 2);
         const params = new URLSearchParams({
           watchRegion,
-          language,
+          languages: languagesParam,
           sortBy: "primary_release_date.desc",
           page: "1",
           releaseDateGte: gte,
@@ -183,7 +184,7 @@ export default function ReleaseCalendarPage() {
       const { gte, lte } = dateRange(1, 2);
       const params = new URLSearchParams({
         watchRegion,
-        language,
+        languages: languagesParam,
         sortBy: "first_air_date.desc",
         page: "1",
         airDateGte: gte,
@@ -242,7 +243,7 @@ export default function ReleaseCalendarPage() {
                   )}
                 />
               </button>
-              {localeOpen ? <LocaleMenuPopover onClose={() => setLocaleOpen(false)} /> : null}
+              {localeOpen ? <RegionPopover /> : null}
             </span>
           </h1>
 
