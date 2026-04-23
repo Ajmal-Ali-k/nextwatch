@@ -118,7 +118,7 @@ export default function MediaDetailView({ model }: { model: MediaDetailPresentat
                 </div>
 
                 {model.kind === "movie" ? (
-                  <MovieDetailWatchProviders movieId={model.id} mediaTitle={model.title} />
+                  <MovieDetailWatchProviders movieId={model.id} mediaTitle={model.title} isInTheaters={model.isInTheaters} />
                 ) : (
                   <MovieDetailWatchProviders tvId={model.id} mediaTitle={model.title} />
                 )}
