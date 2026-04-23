@@ -89,8 +89,8 @@ export function UnifiedTrailerEditor({
   const handleAdd = useCallback(
     (item: Omit<TrailerSectionItem, "addedAt" | "order">) => {
       setItems((prev) => [
+        { ...item, addedAt: new Date().toISOString(), order: 0 },
         ...prev,
-        { ...item, addedAt: new Date().toISOString(), order: prev.length },
       ]);
       toast.success(`Added "${item.title}"`);
     },
@@ -100,6 +100,15 @@ export function UnifiedTrailerEditor({
   const handleRemove = useCallback((globalIndex: number) => {
     setItems((prev) => prev.filter((_, i) => i !== globalIndex));
   }, []);
+
+  const handleCategoryChange = useCallback(
+    (globalIndex: number, category: TrailerCategory) => {
+      setItems((prev) =>
+        prev.map((item, i) => (i === globalIndex ? { ...item, category } : item))
+      );
+    },
+    []
+  );
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
@@ -117,9 +126,7 @@ export function UnifiedTrailerEditor({
         const newGlobal = filteredWithGlobalIndex[newDisplayIndex].globalIndex;
         const next = [...prev];
         const [moved] = next.splice(oldGlobal, 1);
-        const adjustedTarget =
-          newGlobal > oldGlobal ? newGlobal - 1 : newGlobal;
-        next.splice(adjustedTarget, 0, moved);
+        next.splice(newGlobal, 0, moved);
         return next;
       });
     }
@@ -251,6 +258,9 @@ export function UnifiedTrailerEditor({
                               item={item}
                               index={displayIndex}
                               onRemove={() => handleRemove(globalIndex)}
+                              onCategoryChange={(cat) =>
+                                handleCategoryChange(globalIndex, cat)
+                              }
                             />
                           )
                         )}

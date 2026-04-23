@@ -63,6 +63,16 @@ type TmdbImageEntry = {
   file_path?: string;
 };
 
+type TmdbReleaseDateEntry = {
+  type?: number;
+  release_date?: string;
+};
+
+type TmdbReleaseDateCountry = {
+  iso_3166_1?: string;
+  release_dates?: TmdbReleaseDateEntry[];
+};
+
 type TmdbMovieDetailAppended = {
   id?: number;
   title?: string;
@@ -78,6 +88,7 @@ type TmdbMovieDetailAppended = {
   images?: { backdrops?: TmdbImageEntry[]; posters?: TmdbImageEntry[] };
   recommendations?: { results?: TmdbMovieListResult[] };
   similar?: { results?: TmdbMovieListResult[] };
+  release_dates?: { results?: TmdbReleaseDateCountry[] };
 };
 
 export type MovieDetailRecommended = {
@@ -210,7 +221,32 @@ export type MovieDetailPageData = {
   backdrops: { src: string }[];
   posters: { src: string }[];
   recommended: MovieDetailRecommended[];
+  isInTheaters: boolean;
 };
+
+function computeIsInTheaters(
+  releaseDates: TmdbReleaseDateCountry[] | undefined
+): boolean {
+  if (!releaseDates?.length) return false;
+  const now = Date.now();
+  let hasTheatrical = false;
+  let hasDigitalRelease = false;
+
+  for (const country of releaseDates) {
+    for (const rd of country.release_dates ?? []) {
+      const type = rd.type;
+      const dateStr = rd.release_date;
+      if (!type || !dateStr) continue;
+      const ts = new Date(dateStr).getTime();
+      if (Number.isNaN(ts) || ts > now) continue;
+
+      if (type === 2 || type === 3) hasTheatrical = true;
+      if (type === 4 || type === 5 || type === 6) hasDigitalRelease = true;
+    }
+  }
+
+  return hasTheatrical && !hasDigitalRelease;
+}
 
 export async function loadMovieDetail(
   movieId: number,
@@ -225,7 +261,7 @@ export async function loadMovieDetail(
   url.searchParams.set("include_video_language", INCLUDE_VIDEO_LANGUAGE);
   url.searchParams.set(
     "append_to_response",
-    "credits,videos,images,recommendations,similar"
+    "credits,videos,images,recommendations,similar,release_dates"
   );
 
   const res = await fetch(url.toString(), { next: { revalidate: 3600 } });
@@ -343,6 +379,8 @@ export async function loadMovieDetail(
     backdrop = poster.replace("/w500", "/original");
   }
 
+  const isInTheaters = computeIsInTheaters(data.release_dates?.results);
+
   return {
     id,
     title,
@@ -361,5 +399,6 @@ export async function loadMovieDetail(
     backdrops: backdropEntries,
     posters: posterEntries,
     recommended,
+    isInTheaters,
   };
 }

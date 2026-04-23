@@ -38,6 +38,7 @@ export type MediaDetailPresentation = {
   posters: MediaDetailGalleryImage[];
   seasons: TvSeason[];
   recommended: MediaDetailRecommended[];
+  isInTheaters: boolean;
 };
 
 export function movieToMediaPresentation(data: MovieDetailPageData): MediaDetailPresentation {
@@ -52,7 +53,7 @@ export function movieToMediaPresentation(data: MovieDetailPageData): MediaDetail
     overview: data.overview,
     languageLabel: data.languageLabel,
     genres: data.genres,
-    dateEyebrow: "Released",
+    dateEyebrow: data.isInTheaters ? "In Theaters" : "Released",
     datePrimary: data.releaseDateFormatted,
     sublines,
     trailerYoutubeKey: data.trailerYoutubeKey,
@@ -68,6 +69,7 @@ export function movieToMediaPresentation(data: MovieDetailPageData): MediaDetail
       date: m.date,
       image: m.image,
     })),
+    isInTheaters: data.isInTheaters,
   };
 }
 
@@ -101,5 +103,6 @@ export function tvToMediaPresentation(data: TvDetailPageData): MediaDetailPresen
       date: m.date,
       image: m.image,
     })),
+    isInTheaters: false,
   };
 }
