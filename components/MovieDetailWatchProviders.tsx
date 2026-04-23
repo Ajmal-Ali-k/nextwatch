@@ -68,16 +68,18 @@ function ProviderChip({ platform }: { platform: ProviderRow }) {
   return <div className={chipClassName}>{inner}</div>;
 }
 
+type ReleaseStatus = "upcoming" | "in_theaters" | "released";
+
 type MovieDetailWatchProvidersProps =
-  | { movieId: number; mediaTitle: string; tvId?: never; isInTheaters?: boolean }
-  | { tvId: number; mediaTitle: string; movieId?: never; isInTheaters?: never };
+  | { movieId: number; mediaTitle: string; tvId?: never; releaseStatus?: ReleaseStatus }
+  | { tvId: number; mediaTitle: string; movieId?: never; releaseStatus?: never };
 
 export function MovieDetailWatchProviders(props: MovieDetailWatchProvidersProps) {
   const { watchRegion } = useRegionLanguage();
   const isTv = "tvId" in props;
   const mediaId = isTv ? props.tvId : props.movieId;
   const mediaTitle = props.mediaTitle;
-  const isInTheaters = "isInTheaters" in props && props.isInTheaters;
+  const releaseStatus: ReleaseStatus = ("releaseStatus" in props && props.releaseStatus) || "released";
 
   const q = useQuery({
     queryKey: [
@@ -129,7 +131,17 @@ export function MovieDetailWatchProviders(props: MovieDetailWatchProvidersProps)
     );
   }
   if (!q.data?.length) {
-    if (isInTheaters) {
+    if (releaseStatus === "upcoming") {
+      return (
+        <div className="flex w-fit items-center gap-2.5 rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 backdrop-blur-sm">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="size-5 shrink-0 text-white/60">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+          </svg>
+          <span className="text-sm font-medium text-white/70">Streaming availability will be updated after release.</span>
+        </div>
+      );
+    }
+    if (releaseStatus === "in_theaters") {
       return (
         <div className="space-y-2">
           <p className="text-[11px] font-semibold uppercase tracking-wider text-white/45">
@@ -155,9 +167,12 @@ export function MovieDetailWatchProviders(props: MovieDetailWatchProvidersProps)
       );
     }
     return (
-      <p className="text-sm text-white/40">
-        No streaming options available in your region.
-      </p>
+      <div className="flex w-fit items-center gap-2.5 rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 backdrop-blur-sm">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="size-5 shrink-0 text-white/60">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
+        </svg>
+        <span className="text-sm font-medium text-white/70">No streaming options available in your region.</span>
+      </div>
     );
   }
 
