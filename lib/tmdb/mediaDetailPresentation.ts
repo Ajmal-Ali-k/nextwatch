@@ -39,6 +39,13 @@ export type MediaDetailPresentation = {
   seasons: TvSeason[];
   recommended: MediaDetailRecommended[];
   isInTheaters: boolean;
+  releaseStatus: "upcoming" | "in_theaters" | "released";
+};
+
+const EYEBROW_MAP: Record<MovieDetailPageData["releaseStatus"], string> = {
+  upcoming: "Coming Soon",
+  in_theaters: "In Theaters",
+  released: "Released",
 };
 
 export function movieToMediaPresentation(data: MovieDetailPageData): MediaDetailPresentation {
@@ -53,7 +60,7 @@ export function movieToMediaPresentation(data: MovieDetailPageData): MediaDetail
     overview: data.overview,
     languageLabel: data.languageLabel,
     genres: data.genres,
-    dateEyebrow: data.isInTheaters ? "In Theaters" : "Released",
+    dateEyebrow: EYEBROW_MAP[data.releaseStatus],
     datePrimary: data.releaseDateFormatted,
     sublines,
     trailerYoutubeKey: data.trailerYoutubeKey,
@@ -69,7 +76,8 @@ export function movieToMediaPresentation(data: MovieDetailPageData): MediaDetail
       date: m.date,
       image: m.image,
     })),
-    isInTheaters: data.isInTheaters,
+    isInTheaters: data.releaseStatus === "in_theaters",
+    releaseStatus: data.releaseStatus,
   };
 }
 
@@ -104,5 +112,6 @@ export function tvToMediaPresentation(data: TvDetailPageData): MediaDetailPresen
       image: m.image,
     })),
     isInTheaters: false,
+    releaseStatus: "released",
   };
 }

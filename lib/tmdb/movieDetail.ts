@@ -77,6 +77,7 @@ type TmdbMovieDetailAppended = {
   id?: number;
   title?: string;
   overview?: string;
+  status?: string;
   release_date?: string;
   original_language?: string | null;
   runtime?: number | null;
@@ -221,31 +222,39 @@ export type MovieDetailPageData = {
   backdrops: { src: string }[];
   posters: { src: string }[];
   recommended: MovieDetailRecommended[];
-  isInTheaters: boolean;
+  releaseStatus: "upcoming" | "in_theaters" | "released";
 };
 
-function computeIsInTheaters(
+function computeReleaseStatus(
+  releaseDate: string,
+  tmdbStatus: string | undefined,
   releaseDates: TmdbReleaseDateCountry[] | undefined
-): boolean {
-  if (!releaseDates?.length) return false;
+): MovieDetailPageData["releaseStatus"] {
   const now = Date.now();
-  let hasTheatrical = false;
-  let hasDigitalRelease = false;
 
-  for (const country of releaseDates) {
-    for (const rd of country.release_dates ?? []) {
-      const type = rd.type;
-      const dateStr = rd.release_date;
-      if (!type || !dateStr) continue;
-      const ts = new Date(dateStr).getTime();
-      if (Number.isNaN(ts) || ts > now) continue;
+  const rdTs = releaseDate ? new Date(`${releaseDate}T12:00:00`).getTime() : NaN;
+  if (!Number.isNaN(rdTs) && rdTs > now) return "upcoming";
 
-      if (type === 2 || type === 3) hasTheatrical = true;
-      if (type === 4 || type === 5 || type === 6) hasDigitalRelease = true;
+  if (tmdbStatus && tmdbStatus !== "Released") return "upcoming";
+
+  if (releaseDates?.length) {
+    let hasTheatrical = false;
+    let hasDigitalRelease = false;
+    for (const country of releaseDates) {
+      for (const rd of country.release_dates ?? []) {
+        const type = rd.type;
+        const dateStr = rd.release_date;
+        if (!type || !dateStr) continue;
+        const ts = new Date(dateStr).getTime();
+        if (Number.isNaN(ts) || ts > now) continue;
+        if (type === 2 || type === 3) hasTheatrical = true;
+        if (type === 4 || type === 5 || type === 6) hasDigitalRelease = true;
+      }
     }
+    if (hasTheatrical && !hasDigitalRelease) return "in_theaters";
   }
 
-  return hasTheatrical && !hasDigitalRelease;
+  return "released";
 }
 
 export async function loadMovieDetail(
@@ -379,7 +388,11 @@ export async function loadMovieDetail(
     backdrop = poster.replace("/w500", "/original");
   }
 
-  const isInTheaters = computeIsInTheaters(data.release_dates?.results);
+  const releaseStatus = computeReleaseStatus(
+    releaseDate,
+    data.status,
+    data.release_dates?.results
+  );
 
   return {
     id,
@@ -399,6 +412,6 @@ export async function loadMovieDetail(
     backdrops: backdropEntries,
     posters: posterEntries,
     recommended,
-    isInTheaters,
+    releaseStatus,
   };
 }
