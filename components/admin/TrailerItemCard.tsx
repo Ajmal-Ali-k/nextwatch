@@ -5,9 +5,12 @@ import { GripVertical, Trash2, ExternalLink } from "lucide-react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import type { TrailerSectionItem, TrailerCategory } from "@/lib/db/trailerSection";
+import {
+  TRAILER_CATEGORIES,
+  type TrailerSectionItem,
+  type TrailerCategory,
+} from "@/lib/db/trailerSection";
 
 const CATEGORY_COLORS: Record<TrailerCategory, string> = {
   Theatre: "bg-blue-100 text-blue-700 border-blue-200",
@@ -21,11 +24,13 @@ export function TrailerItemCard({
   index,
   sortableId,
   onRemove,
+  onCategoryChange,
 }: {
   item: TrailerSectionItem;
   index: number;
   sortableId: string;
   onRemove: () => void;
+  onCategoryChange: (category: TrailerCategory) => void;
 }) {
   const {
     attributes,
@@ -94,14 +99,25 @@ export function TrailerItemCard({
         </p>
       </td>
 
-      {/* Category badge */}
-      <td className="w-24 py-2 px-1">
-        <Badge
-          variant="outline"
-          className={cn("text-[10px] font-medium", CATEGORY_COLORS[item.category])}
+      {/* Category select */}
+      <td className="w-28 py-2 px-1">
+        <select
+          value={item.category}
+          onChange={(e) => onCategoryChange(e.target.value as TrailerCategory)}
+          className={cn(
+            "rounded-full border px-2 py-0.5 text-[10px] font-medium appearance-none cursor-pointer pr-5 bg-size-[12px] bg-position-[right_4px_center] bg-no-repeat",
+            CATEGORY_COLORS[item.category]
+          )}
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`,
+          }}
         >
-          {item.category}
-        </Badge>
+          {TRAILER_CATEGORIES.map((cat) => (
+            <option key={cat} value={cat}>
+              {cat}
+            </option>
+          ))}
+        </select>
       </td>
 
       {/* YouTube link */}
