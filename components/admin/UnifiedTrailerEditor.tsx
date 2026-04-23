@@ -126,9 +126,7 @@ export function UnifiedTrailerEditor({
         const newGlobal = filteredWithGlobalIndex[newDisplayIndex].globalIndex;
         const next = [...prev];
         const [moved] = next.splice(oldGlobal, 1);
-        const adjustedTarget =
-          newGlobal > oldGlobal ? newGlobal - 1 : newGlobal;
-        next.splice(adjustedTarget, 0, moved);
+        next.splice(newGlobal, 0, moved);
         return next;
       });
     }
