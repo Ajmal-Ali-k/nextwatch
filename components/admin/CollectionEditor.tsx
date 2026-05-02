@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Save, Loader2 } from "lucide-react";
+import { Save, Loader2, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   DndContext,
@@ -44,6 +44,7 @@ export function CollectionEditor({
   const router = useRouter();
   const [items, setItems] = useState<HomeSectionItem[]>(initialItems);
   const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState("");
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -62,12 +63,26 @@ export function CollectionEditor({
     [items]
   );
 
+  const visibleEntries = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return items.map((item, index) => ({ item, index }));
+    return items
+      .map((item, index) => ({ item, index }))
+      .filter(({ item }) => item.title.toLowerCase().includes(q));
+  }, [items, search]);
+
+  const visibleSortableIds = useMemo(
+    () => visibleEntries.map(({ index }) => sortableIds[index]),
+    [visibleEntries, sortableIds]
+  );
+
   const handleAdd = useCallback(
     (item: Omit<HomeSectionItem, "addedAt" | "order">) => {
       setItems((prev) => [
+        { ...item, addedAt: new Date().toISOString(), order: 0 },
         ...prev,
-        { ...item, addedAt: new Date().toISOString(), order: prev.length },
       ]);
+      setSearch("");
       toast.success(`Added "${item.title}"`);
     },
     []
@@ -138,10 +153,31 @@ export function CollectionEditor({
 
       <div className="grid gap-6 lg:grid-cols-[1fr_340px] items-start">
         <Card className="overflow-hidden">
-          <CardHeader className="pb-2">
+          <CardHeader className="pb-2 space-y-2">
             <CardTitle className="text-sm font-medium text-gray-500">
-              Items &middot; {items.length}
+              Items &middot; {search.trim() ? `${visibleEntries.length} of ${items.length}` : items.length}
             </CardTitle>
+            {items.length > 0 && (
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search items…"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full rounded-md border border-gray-200 bg-white py-1.5 pl-8 pr-8 text-sm outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-400"
+                />
+                {search && (
+                  <button
+                    type="button"
+                    onClick={() => setSearch("")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="size-4" />
+                  </button>
+                )}
+              </div>
+            )}
           </CardHeader>
           <CardContent className="p-0">
             {items.length === 0 ? (
@@ -158,7 +194,7 @@ export function CollectionEditor({
                 onDragEnd={handleDragEnd}
               >
                 <SortableContext
-                  items={sortableIds}
+                  items={visibleSortableIds}
                   strategy={verticalListSortingStrategy}
                 >
                   <div className="max-h-[calc(100vh-220px)] overflow-y-auto">
@@ -178,7 +214,7 @@ export function CollectionEditor({
                         </tr>
                       </thead>
                       <tbody>
-                        {items.map((item, index) => (
+                        {visibleEntries.map(({ item, index }) => (
                           <CollectionItemCard
                             key={sortableIds[index]}
                             sortableId={sortableIds[index]}
