@@ -42,4 +42,4 @@ next-env.d.ts
 .CLAUDE.md
 /.claude
 /.cursor
-CLAUDE.md
+*.md
