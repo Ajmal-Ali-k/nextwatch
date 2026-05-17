@@ -7,6 +7,7 @@ import {
   TRAILER_SLUGS,
   TRAILER_META,
   TRAILER_CATEGORIES,
+  filterTrailerSectionItems,
   slugToCategory,
   categoryToSlug,
   type TrailerSectionItem,
@@ -23,12 +24,13 @@ export async function GET(request: Request) {
     .find({ slug: { $in: [...TRAILER_SLUGS] } })
     .toArray();
 
+  const searchParams = new URL(request.url).searchParams;
+  const searchQuery =
+    searchParams.get("query") ??
+    searchParams.get("q") ??
+    searchParams.get("search") ??
+    "";
   const items: TrailerSectionItem[] = [];
-  const counts: Record<string, number> = {};
-
-  for (const cat of TRAILER_CATEGORIES) {
-    counts[cat] = 0;
-  }
 
   for (const doc of docs) {
     const slug = doc.slug as string;
@@ -51,8 +53,6 @@ export async function GET(request: Request) {
         order: item.order ?? 0,
       });
     }
-
-    counts[category] = docItems.length;
   }
 
   // Sort by category order then by item order
@@ -63,7 +63,19 @@ export async function GET(request: Request) {
     return a.order - b.order;
   });
 
-  return NextResponse.json({ items, counts });
+  const filteredItems = filterTrailerSectionItems(items, searchQuery);
+  const counts: Record<string, number> = {};
+
+  for (const cat of TRAILER_CATEGORIES) {
+    counts[cat] = filteredItems.filter((item) => item.category === cat).length;
+  }
+
+  return NextResponse.json({
+    items: filteredItems,
+    counts,
+    totalCount: items.length,
+    query: searchQuery.trim(),
+  });
 }
 
 export async function PUT(request: Request) {

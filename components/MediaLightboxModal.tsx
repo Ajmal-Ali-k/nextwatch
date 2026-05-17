@@ -2,10 +2,22 @@
 
 import Image from "next/image";
 import { createPortal } from "react-dom";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+
+function subscribeToClientHydration() {
+  return () => {};
+}
+
+function getClientSnapshot() {
+  return true;
+}
+
+function getServerSnapshot() {
+  return false;
+}
 
 type ImageLightboxProps = {
   mode: "image";
@@ -25,15 +37,17 @@ type VideoLightboxProps = {
 type MediaLightboxModalProps = ImageLightboxProps | VideoLightboxProps;
 
 export function MediaLightboxModal(props: MediaLightboxModalProps) {
-  const [mounted, setMounted] = useState(false);
+  const mounted = useSyncExternalStore(
+    subscribeToClientHydration,
+    getClientSnapshot,
+    getServerSnapshot
+  );
   const closeRef = useRef<HTMLButtonElement>(null);
   const { onClose } = props;
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
+    if (!mounted) return;
 
-  useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     closeRef.current?.focus();
@@ -55,7 +69,7 @@ export function MediaLightboxModal(props: MediaLightboxModalProps) {
       document.body.style.overflow = prev;
       document.removeEventListener("keydown", onKey);
     };
-  }, [onClose, props]);
+  }, [mounted, onClose, props]);
 
   const modalContent = (
     <div

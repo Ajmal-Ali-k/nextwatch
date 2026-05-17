@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 type MoviePosterProps = {
   title: string;
@@ -11,13 +11,9 @@ type MoviePosterProps = {
 };
 
 export function MoviePoster({ title, posterUrl, sizes, className }: MoviePosterProps) {
-  const [loadFailed, setLoadFailed] = useState(false);
+  const [failedPosterUrl, setFailedPosterUrl] = useState<string | null>(null);
 
-  useEffect(() => {
-    setLoadFailed(false);
-  }, [posterUrl]);
-
-  const showFallback = !posterUrl || loadFailed;
+  const showFallback = !posterUrl || failedPosterUrl === posterUrl;
 
   if (showFallback) {
     return (
@@ -36,7 +32,7 @@ export function MoviePoster({ title, posterUrl, sizes, className }: MoviePosterP
       fill
       sizes={sizes}
       className={className}
-      onError={() => setLoadFailed(true)}
+      onError={() => setFailedPosterUrl(posterUrl)}
     />
   );
 }
