@@ -11,7 +11,7 @@ import { UnifiedTrailerEditor } from "@/components/admin/UnifiedTrailerEditor";
 export const dynamic = "force-dynamic";
 
 export default async function TrailersPage() {
-  let items: TrailerSectionItem[] = [];
+  const items: TrailerSectionItem[] = [];
 
   try {
     const db = await getDb();

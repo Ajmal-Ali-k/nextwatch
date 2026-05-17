@@ -19,6 +19,38 @@ export type TrailerSectionItem = {
   order: number;
 };
 
+function normalizeTrailerSearchValue(value: unknown) {
+  return String(value ?? "").trim().toLowerCase();
+}
+
+function getTrailerSectionItemSearchText(item: TrailerSectionItem) {
+  return [
+    item.title,
+    item.category,
+    item.mediaType,
+    item.mediaType === "tv" ? "tv show series" : "movie film",
+    item.releaseDate,
+    item.youtubeKey,
+    item.tmdbId,
+  ]
+    .map(normalizeTrailerSearchValue)
+    .filter(Boolean)
+    .join(" ");
+}
+
+export function filterTrailerSectionItems(
+  items: TrailerSectionItem[],
+  query: string
+) {
+  const terms = normalizeTrailerSearchValue(query).split(/\s+/).filter(Boolean);
+  if (terms.length === 0) return items;
+
+  return items.filter((item) => {
+    const searchText = getTrailerSectionItemSearchText(item);
+    return terms.every((term) => searchText.includes(term));
+  });
+}
+
 export const TRAILER_SLUGS = [
   "trailer-theatre",
   "trailer-ott-series",

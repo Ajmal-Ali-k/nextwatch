@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Save, Loader2 } from "lucide-react";
+import { Save, Loader2, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   DndContext,
@@ -22,12 +22,14 @@ import {
 import { restrictToVerticalAxis, restrictToParentElement } from "@dnd-kit/modifiers";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { TrailerSearchPanel } from "./TrailerSearchPanel";
 import { YouTubeManualForm } from "./YouTubeManualForm";
 import { TrailerItemCard } from "./TrailerItemCard";
 import {
   TRAILER_CATEGORIES,
+  filterTrailerSectionItems,
   type TrailerSectionItem,
   type TrailerCategory,
 } from "@/lib/db/trailerSection";
@@ -51,6 +53,8 @@ export function UnifiedTrailerEditor({
   const [saving, setSaving] = useState(false);
   const [filterTab, setFilterTab] = useState<FilterTab>("All");
   const [addTab, setAddTab] = useState<AddTab>("search");
+  const [tableSearch, setTableSearch] = useState("");
+  const isTableSearchActive = tableSearch.trim().length > 0;
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -60,13 +64,26 @@ export function UnifiedTrailerEditor({
   );
 
   const filteredWithGlobalIndex = useMemo(() => {
-    if (filterTab === "All") {
-      return items.map((item, i) => ({ item, globalIndex: i }));
+    const categoryFiltered =
+      filterTab === "All"
+        ? items.map((item, i) => ({ item, globalIndex: i }))
+        : items
+            .map((item, i) => ({ item, globalIndex: i }))
+            .filter(({ item }) => item.category === filterTab);
+
+    if (!isTableSearchActive) {
+      return categoryFiltered;
     }
-    return items
-      .map((item, i) => ({ item, globalIndex: i }))
-      .filter(({ item }) => item.category === filterTab);
-  }, [items, filterTab]);
+
+    const matchingItems = new Set(
+      filterTrailerSectionItems(
+        categoryFiltered.map(({ item }) => item),
+        tableSearch
+      )
+    );
+
+    return categoryFiltered.filter(({ item }) => matchingItems.has(item));
+  }, [items, filterTab, isTableSearchActive, tableSearch]);
 
   const sortableIds = useMemo(
     () =>
@@ -118,7 +135,7 @@ export function UnifiedTrailerEditor({
     const newDisplayIndex = sortableIds.indexOf(String(over.id));
     if (oldDisplayIndex === -1 || newDisplayIndex === -1) return;
 
-    if (filterTab === "All") {
+    if (filterTab === "All" && !isTableSearchActive) {
       setItems((prev) => arrayMove(prev, oldDisplayIndex, newDisplayIndex));
     } else {
       setItems((prev) => {
@@ -166,6 +183,7 @@ export function UnifiedTrailerEditor({
     }
     return c;
   }, [items]);
+  const activeScopeCount = filterTab === "All" ? items.length : counts[filterTab] ?? 0;
 
   return (
     <div className="space-y-6 max-w-[1200px]">
@@ -189,32 +207,64 @@ export function UnifiedTrailerEditor({
 
       <div className="grid gap-6 lg:grid-cols-[1fr_380px] items-start">
         <Card className="overflow-hidden">
-          <CardHeader className="pb-2">
-            <div className="flex flex-wrap gap-1">
-              {FILTER_TABS.map((tab) => (
-                <button
-                  key={tab}
-                  type="button"
-                  onClick={() => setFilterTab(tab)}
-                  className={cn(
-                    "rounded-full px-3 py-1 text-xs font-medium transition-colors",
-                    filterTab === tab
-                      ? "bg-gray-900 text-white"
-                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                  )}
-                >
-                  {tab}
-                  <span className="ml-1 text-[10px] opacity-70">
-                    {counts[tab] ?? 0}
-                  </span>
-                </button>
-              ))}
+          <CardHeader className="space-y-3 pb-2">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-wrap gap-1">
+                {FILTER_TABS.map((tab) => (
+                  <button
+                    key={tab}
+                    type="button"
+                    onClick={() => setFilterTab(tab)}
+                    className={cn(
+                      "rounded-full px-3 py-1 text-xs font-medium transition-colors",
+                      filterTab === tab
+                        ? "bg-gray-900 text-white"
+                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    )}
+                  >
+                    {tab}
+                    <span className="ml-1 text-[10px] opacity-70">
+                      {counts[tab] ?? 0}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              <div className="relative w-full sm:w-72">
+                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
+                <Input
+                  value={tableSearch}
+                  onChange={(e) => setTableSearch(e.target.value)}
+                  placeholder="Search listed trailers..."
+                  aria-label="Search listed trailers"
+                  className="h-8 pl-9 pr-9 text-sm"
+                />
+                {isTableSearchActive && (
+                  <button
+                    type="button"
+                    onClick={() => setTableSearch("")}
+                    className="absolute right-2 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                    aria-label="Clear trailer search"
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                )}
+              </div>
             </div>
+
+            {isTableSearchActive && (
+              <p className="text-xs text-gray-500">
+                Showing {filteredWithGlobalIndex.length} of {activeScopeCount}{" "}
+                listed {activeScopeCount === 1 ? "trailer" : "trailers"}
+              </p>
+            )}
           </CardHeader>
           <CardContent className="p-0">
             {filteredWithGlobalIndex.length === 0 ? (
               <p className="py-12 text-center text-sm text-gray-400">
-                {filterTab === "All"
+                {isTableSearchActive
+                  ? `No trailers matching "${tableSearch.trim()}".`
+                  : filterTab === "All"
                   ? "No trailers yet. Use the panel on the right to add trailers."
                   : `No trailers in "${filterTab}". Add some from the right panel.`}
               </p>
