@@ -11,13 +11,8 @@ type MovieTrailerModalProps = {
 
 export function MovieTrailerModal({ youtubeKey, movieTitle }: MovieTrailerModalProps) {
   const [open, setOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
   const closeRef = useRef<HTMLButtonElement>(null);
   const close = useCallback(() => setOpen(false), []);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -85,7 +80,9 @@ export function MovieTrailerModal({ youtubeKey, movieTitle }: MovieTrailerModalP
         Watch Trailer
       </button>
 
-      {mounted ? createPortal(modal, document.body) : null}
+      {open && typeof document !== "undefined"
+        ? createPortal(modal, document.body)
+        : null}
     </>
   );
 }
