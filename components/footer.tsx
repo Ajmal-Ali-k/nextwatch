@@ -46,13 +46,15 @@ export default function Footer() {
           >
             <Facebook className="size-3.5 sm:size-4" />
           </button>
-          <button
-            type="button"
+          <Link
+            href="https://www.instagram.com/next.watch.list?igsh=aTJqZm5iZTV6MHJj"
             className="transition-colors hover:text-white font-sans"
             aria-label="Instagram"
+            target="_blank"
+            rel="noopener noreferrer"
           >
             <Instagram className="size-3.5 sm:size-4" />
-          </button>
+          </Link>
         </div>
       </div>
     </footer>
