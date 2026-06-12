@@ -17,6 +17,16 @@ type NowPlayingJson = {
   results: NormalizedDiscoverMovie[];
 };
 
+export type InTheatersInitialData = {
+  data: NowPlayingJson;
+  updatedAt: number;
+  params: {
+    watchRegion: string;
+    languagesParam: string;
+    page: number;
+  };
+};
+
 const MAX_PAGE_BUTTONS = 9;
 
 function formatReleaseDate(iso: string): string {
@@ -30,10 +40,20 @@ function regionLabel(code: string): string {
   return WATCH_REGIONS.find((r) => r.code === code)?.label ?? code;
 }
 
-export default function InTheatersPageContent() {
+export default function InTheatersPageContent({
+  initialData,
+}: {
+  initialData?: InTheatersInitialData;
+}) {
   const { watchRegion, languages } = useRegionLanguage();
   const languagesParam = languages.join(",");
   const { page, replacePage } = useInTheatersPageUrl();
+
+  const initialDataMatches =
+    initialData !== undefined &&
+    initialData.params.watchRegion === watchRegion &&
+    initialData.params.languagesParam === languagesParam &&
+    initialData.params.page === page;
 
   const query = useQuery({
     queryKey: ["movies-now-playing", watchRegion, languagesParam, page],
@@ -48,6 +68,8 @@ export default function InTheatersPageContent() {
       if (!res.ok) throw new Error(data.error ?? `Request failed (${res.status})`);
       return data;
     },
+    initialData: initialDataMatches ? initialData.data : undefined,
+    initialDataUpdatedAt: initialDataMatches ? initialData.updatedAt : undefined,
     placeholderData: keepPreviousData,
   });
 

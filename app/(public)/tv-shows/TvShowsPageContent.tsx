@@ -22,7 +22,6 @@ import {
   filterIndiaOnlyProvidersForRegion,
   getProviderIdForRegion,
   isIndiaOnlyOttKey,
-  MAJOR_OTT_PLATFORM_KEYS,
   MAJOR_PLATFORM_FALLBACK_INITIALS,
   MAJOR_PLATFORM_FALLBACK_LABEL,
   majorOttPlatformKeysForTvPage,
@@ -43,6 +42,19 @@ type TvDiscoverJson = {
   totalPages: number;
   totalResults: number;
   results: NormalizedDiscoverTvShow[];
+};
+
+export type TvShowsInitialDiscoverData = {
+  data: TvDiscoverJson;
+  updatedAt: number;
+  params: {
+    watchRegion: string;
+    languagesParam: string;
+    page: number;
+    providerId: number | null;
+    sortBy: TvDiscoverSortValue;
+    genreId: number | null;
+  };
 };
 
 type GenresJson = {
@@ -70,7 +82,11 @@ function formatReleaseDate(iso: string): string {
 
 const MAX_PAGE_BUTTONS = 9;
 
-export default function TvShowsPageContent() {
+export default function TvShowsPageContent({
+  initialDiscoverData,
+}: {
+  initialDiscoverData?: TvShowsInitialDiscoverData;
+}) {
   const { watchRegion, languages } = useRegionLanguage();
   const languagesParam = languages.join(",");
   const { parsed, replace, searchParams } = useTvShowsDiscoverUrl();
@@ -210,6 +226,15 @@ export default function TvShowsPageContent() {
     return resolveMajorProviderId(watchRegion, platformSelection.key, providersList);
   }, [platformSelection, watchRegion, providersList]);
 
+  const initialDiscoverDataMatches =
+    initialDiscoverData !== undefined &&
+    initialDiscoverData.params.watchRegion === watchRegion &&
+    initialDiscoverData.params.languagesParam === languagesParam &&
+    initialDiscoverData.params.page === page &&
+    initialDiscoverData.params.providerId === (providerId ?? null) &&
+    initialDiscoverData.params.sortBy === sortBy &&
+    initialDiscoverData.params.genreId === genreId;
+
   /** Preset providerId uses `resolveMajorProviderId`; empty list only has static fallback → wrong TMDB id + empty discover. */
   const discoverEnabled =
     !platformUnavailable &&
@@ -245,6 +270,10 @@ export default function TvShowsPageContent() {
       return data;
     },
     enabled: discoverEnabled,
+    initialData: initialDiscoverDataMatches ? initialDiscoverData.data : undefined,
+    initialDataUpdatedAt: initialDiscoverDataMatches
+      ? initialDiscoverData.updatedAt
+      : undefined,
     placeholderData: keepPreviousData,
   });
 

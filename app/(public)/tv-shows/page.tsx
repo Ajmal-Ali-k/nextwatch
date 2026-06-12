@@ -1,6 +1,115 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 
-import TvShowsPageContent from "./TvShowsPageContent";
+import { JsonLd } from "@/components/JsonLd";
+import { createPageMetadata } from "@/lib/seo";
+import { buildItemListJsonLd } from "@/lib/seo/structuredData";
+import { getServerHomePreferences } from "@/lib/server/homePreferences";
+import {
+  fetchDiscoverTvPage,
+  type NormalizedDiscoverTvShow,
+} from "@/lib/tmdb/discoverPages";
+import {
+  getProviderIdForRegion,
+  discoverAnyOttWatchProvidersParam,
+  MAJOR_OTT_PLATFORM_KEYS,
+  type OttPlatformKey,
+} from "@/lib/tmdb/platforms";
+import { parseTvDiscoverSort } from "@/lib/tmdb/tvDiscoverSort";
+import TvShowsPageContent, {
+  type TvShowsInitialDiscoverData,
+} from "./TvShowsPageContent";
+
+export const metadata: Metadata = createPageMetadata({
+  title: "TV Shows on OTT",
+  description:
+    "Find popular TV shows and series streaming across platforms, filtered by your region and languages.",
+  path: "/tv-shows",
+});
+
+type PageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+const OTT_KEY_SET = new Set<string>(MAJOR_OTT_PLATFORM_KEYS);
+
+function firstParam(value: string | string[] | undefined): string | null {
+  if (Array.isArray(value)) return value[0] ?? null;
+  return value ?? null;
+}
+
+function parsePositiveInteger(value: string | null): number | null {
+  if (value == null || value === "") return null;
+  const n = Number(value);
+  return Number.isInteger(n) && n > 0 ? n : null;
+}
+
+function parsePage(value: string | null): number {
+  const n = parsePositiveInteger(value);
+  return n ?? 1;
+}
+
+function tvItemList(results: NormalizedDiscoverTvShow[]) {
+  return buildItemListJsonLd({
+    name: "Latest TV Shows on OTT",
+    url: "/tv-shows",
+    items: results.map((show) => ({
+      title: show.title,
+      url: `/tv-shows/${show.id}`,
+      image: show.posterUrl,
+    })),
+  });
+}
+
+async function getInitialDiscoverData(
+  searchParams: Record<string, string | string[] | undefined>
+): Promise<TvShowsInitialDiscoverData | undefined> {
+  const prefs = await getServerHomePreferences();
+  const providerRaw = firstParam(searchParams.provider);
+  const providerId = parsePositiveInteger(providerRaw) ?? undefined;
+  const platformRaw = firstParam(searchParams.platform);
+  const platform =
+    providerId === undefined && platformRaw && OTT_KEY_SET.has(platformRaw)
+      ? (platformRaw as OttPlatformKey)
+      : null;
+  const presetProviderId =
+    platform === null ? undefined : getProviderIdForRegion(prefs.watchRegion, platform);
+  const resolvedProviderId = providerId ?? presetProviderId;
+
+  if (platform !== null && presetProviderId === undefined) return undefined;
+
+  const page = parsePage(firstParam(searchParams.page));
+  const sortBy = parseTvDiscoverSort(firstParam(searchParams.sort));
+  const genreId = parsePositiveInteger(firstParam(searchParams.genre));
+  const languagesParam = prefs.languages.join(",");
+  const data = await fetchDiscoverTvPage({
+    watchRegion: prefs.watchRegion,
+    languages: prefs.languages,
+    page,
+    providerId: resolvedProviderId,
+    watchProvidersFilter:
+      resolvedProviderId === undefined
+        ? discoverAnyOttWatchProvidersParam(prefs.watchRegion)
+        : undefined,
+    sortBy,
+    genreId,
+  });
+
+  if (!data) return undefined;
+
+  return {
+    data,
+    updatedAt: Date.now(),
+    params: {
+      watchRegion: prefs.watchRegion,
+      languagesParam,
+      page,
+      providerId: resolvedProviderId ?? null,
+      sortBy,
+      genreId,
+    },
+  };
+}
 
 function TvShowsPageFallback() {
   return (
@@ -25,10 +134,18 @@ function TvShowsPageFallback() {
   );
 }
 
-export default function TvShowsPage() {
+export default async function TvShowsPage({ searchParams }: PageProps) {
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const initialDiscoverData = await getInitialDiscoverData(resolvedSearchParams);
+
   return (
-    <Suspense fallback={<TvShowsPageFallback />}>
-      <TvShowsPageContent />
-    </Suspense>
+    <>
+      {initialDiscoverData && initialDiscoverData.data.results.length > 0 ? (
+        <JsonLd data={tvItemList(initialDiscoverData.data.results)} />
+      ) : null}
+      <Suspense fallback={<TvShowsPageFallback />}>
+        <TvShowsPageContent initialDiscoverData={initialDiscoverData} />
+      </Suspense>
+    </>
   );
 }

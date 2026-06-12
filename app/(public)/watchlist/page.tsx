@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
+import { createNoIndexMetadata } from "@/lib/seo";
 import WatchlistPageContent from "./WatchlistPageContent";
 
 function WatchlistFallback() {
@@ -27,8 +28,11 @@ function WatchlistFallback() {
 }
 
 export const metadata: Metadata = {
-  title: "Watchlist | NextWatchList",
-  description: "Titles you saved to watch later.",
+  ...createNoIndexMetadata({
+    title: "Watchlist",
+    description: "Titles you saved to watch later on NextWatchList.",
+    path: "/watchlist",
+  }),
 };
 
 export default function WatchlistPage() {

@@ -44,6 +44,19 @@ type DiscoverJson = {
   results: NormalizedDiscoverMovie[];
 };
 
+export type MoviesInitialDiscoverData = {
+  data: DiscoverJson;
+  updatedAt: number;
+  params: {
+    watchRegion: string;
+    languagesParam: string;
+    page: number;
+    providerId: number | null;
+    sortBy: DiscoverSortValue;
+    genreId: number | null;
+  };
+};
+
 type GenresJson = {
   genres: { id: number; name: string }[];
 };
@@ -69,7 +82,11 @@ function formatReleaseDate(iso: string): string {
 
 const MAX_PAGE_BUTTONS = 9;
 
-export default function MoviesPageContent() {
+export default function MoviesPageContent({
+  initialDiscoverData,
+}: {
+  initialDiscoverData?: MoviesInitialDiscoverData;
+}) {
   const { watchRegion, languages } = useRegionLanguage();
   const languagesParam = languages.join(",");
   const { parsed, replace, searchParams } = useMoviesDiscoverUrl();
@@ -202,6 +219,15 @@ export default function MoviesPageContent() {
     return resolveMajorProviderId(watchRegion, platformSelection.key, providersList);
   }, [platformSelection, watchRegion, providersList]);
 
+  const initialDiscoverDataMatches =
+    initialDiscoverData !== undefined &&
+    initialDiscoverData.params.watchRegion === watchRegion &&
+    initialDiscoverData.params.languagesParam === languagesParam &&
+    initialDiscoverData.params.page === page &&
+    initialDiscoverData.params.providerId === (providerId ?? null) &&
+    initialDiscoverData.params.sortBy === sortBy &&
+    initialDiscoverData.params.genreId === genreId;
+
   /** Preset providerId uses `resolveMajorProviderId`; empty list only has static fallback → wrong TMDB id + empty discover. */
   const discoverEnabled =
     !platformUnavailable &&
@@ -237,6 +263,10 @@ export default function MoviesPageContent() {
       return data;
     },
     enabled: discoverEnabled,
+    initialData: initialDiscoverDataMatches ? initialDiscoverData.data : undefined,
+    initialDataUpdatedAt: initialDiscoverDataMatches
+      ? initialDiscoverData.updatedAt
+      : undefined,
     placeholderData: keepPreviousData,
   });
 
