@@ -1,6 +1,115 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 
-import MoviesPageContent from "./MoviesPageContent";
+import { JsonLd } from "@/components/JsonLd";
+import { createPageMetadata } from "@/lib/seo";
+import { buildItemListJsonLd } from "@/lib/seo/structuredData";
+import { getServerHomePreferences } from "@/lib/server/homePreferences";
+import { parseDiscoverSort } from "@/lib/tmdb/discoverSort";
+import {
+  fetchDiscoverMoviePage,
+  type NormalizedDiscoverMovie,
+} from "@/lib/tmdb/discoverPages";
+import {
+  discoverAnyOttWatchProvidersParam,
+  getProviderIdForRegion,
+  MAJOR_OTT_PLATFORM_KEYS,
+  type OttPlatformKey,
+} from "@/lib/tmdb/platforms";
+import MoviesPageContent, {
+  type MoviesInitialDiscoverData,
+} from "./MoviesPageContent";
+
+export const metadata: Metadata = createPageMetadata({
+  title: "Movies on OTT",
+  description:
+    "Browse popular and newly released movies available across streaming platforms by region and language.",
+  path: "/movies",
+});
+
+type PageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+const OTT_KEY_SET = new Set<string>(MAJOR_OTT_PLATFORM_KEYS);
+
+function firstParam(value: string | string[] | undefined): string | null {
+  if (Array.isArray(value)) return value[0] ?? null;
+  return value ?? null;
+}
+
+function parsePositiveInteger(value: string | null): number | null {
+  if (value == null || value === "") return null;
+  const n = Number(value);
+  return Number.isInteger(n) && n > 0 ? n : null;
+}
+
+function parsePage(value: string | null): number {
+  const n = parsePositiveInteger(value);
+  return n ?? 1;
+}
+
+function movieItemList(results: NormalizedDiscoverMovie[]) {
+  return buildItemListJsonLd({
+    name: "New Movies on OTT",
+    url: "/movies",
+    items: results.map((movie) => ({
+      title: movie.title,
+      url: `/movies/${movie.id}`,
+      image: movie.posterUrl,
+    })),
+  });
+}
+
+async function getInitialDiscoverData(
+  searchParams: Record<string, string | string[] | undefined>
+): Promise<MoviesInitialDiscoverData | undefined> {
+  const prefs = await getServerHomePreferences();
+  const providerRaw = firstParam(searchParams.provider);
+  const providerId = parsePositiveInteger(providerRaw) ?? undefined;
+  const platformRaw = firstParam(searchParams.platform);
+  const platform =
+    providerId === undefined && platformRaw && OTT_KEY_SET.has(platformRaw)
+      ? (platformRaw as OttPlatformKey)
+      : null;
+  const presetProviderId =
+    platform === null ? undefined : getProviderIdForRegion(prefs.watchRegion, platform);
+  const resolvedProviderId = providerId ?? presetProviderId;
+
+  if (platform !== null && presetProviderId === undefined) return undefined;
+
+  const page = parsePage(firstParam(searchParams.page));
+  const sortBy = parseDiscoverSort(firstParam(searchParams.sort));
+  const genreId = parsePositiveInteger(firstParam(searchParams.genre));
+  const languagesParam = prefs.languages.join(",");
+  const data = await fetchDiscoverMoviePage({
+    watchRegion: prefs.watchRegion,
+    languages: prefs.languages,
+    page,
+    providerId: resolvedProviderId,
+    watchProvidersFilter:
+      resolvedProviderId === undefined
+        ? discoverAnyOttWatchProvidersParam(prefs.watchRegion)
+        : undefined,
+    sortBy,
+    genreId,
+  });
+
+  if (!data) return undefined;
+
+  return {
+    data,
+    updatedAt: Date.now(),
+    params: {
+      watchRegion: prefs.watchRegion,
+      languagesParam,
+      page,
+      providerId: resolvedProviderId ?? null,
+      sortBy,
+      genreId,
+    },
+  };
+}
 
 function MoviesPageFallback() {
   return (
@@ -25,10 +134,18 @@ function MoviesPageFallback() {
   );
 }
 
-export default function MoviesPage() {
+export default async function MoviesPage({ searchParams }: PageProps) {
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const initialDiscoverData = await getInitialDiscoverData(resolvedSearchParams);
+
   return (
-    <Suspense fallback={<MoviesPageFallback />}>
-      <MoviesPageContent />
-    </Suspense>
+    <>
+      {initialDiscoverData && initialDiscoverData.data.results.length > 0 ? (
+        <JsonLd data={movieItemList(initialDiscoverData.data.results)} />
+      ) : null}
+      <Suspense fallback={<MoviesPageFallback />}>
+        <MoviesPageContent initialDiscoverData={initialDiscoverData} />
+      </Suspense>
+    </>
   );
 }

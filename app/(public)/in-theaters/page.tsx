@@ -1,6 +1,76 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 
-import InTheatersPageContent from "./InTheatersPageContent";
+import { JsonLd } from "@/components/JsonLd";
+import { createPageMetadata } from "@/lib/seo";
+import { buildItemListJsonLd } from "@/lib/seo/structuredData";
+import { getServerHomePreferences } from "@/lib/server/homePreferences";
+import {
+  fetchNowPlayingMoviePage,
+  type NormalizedDiscoverMovie,
+} from "@/lib/tmdb/discoverPages";
+import InTheatersPageContent, {
+  type InTheatersInitialData,
+} from "./InTheatersPageContent";
+
+export const metadata: Metadata = createPageMetadata({
+  title: "Movies in Theaters",
+  description:
+    "See new and upcoming cinema releases with regional theater availability on NextWatchList.",
+  path: "/in-theaters",
+});
+
+type PageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+function firstParam(value: string | string[] | undefined): string | null {
+  if (Array.isArray(value)) return value[0] ?? null;
+  return value ?? null;
+}
+
+function parsePage(value: string | null): number {
+  if (value == null || value === "") return 1;
+  const n = Number(value);
+  return Number.isInteger(n) && n > 0 ? n : 1;
+}
+
+function theaterItemList(results: NormalizedDiscoverMovie[]) {
+  return buildItemListJsonLd({
+    name: "Now Playing in Theaters",
+    url: "/in-theaters",
+    items: results.map((movie) => ({
+      title: movie.title,
+      url: `/movies/${movie.id}`,
+      image: movie.posterUrl,
+    })),
+  });
+}
+
+async function getInitialData(
+  searchParams: Record<string, string | string[] | undefined>
+): Promise<InTheatersInitialData | undefined> {
+  const prefs = await getServerHomePreferences();
+  const page = parsePage(firstParam(searchParams.page));
+  const languagesParam = prefs.languages.join(",");
+  const data = await fetchNowPlayingMoviePage({
+    watchRegion: prefs.watchRegion,
+    languages: prefs.languages,
+    page,
+  });
+
+  if (!data) return undefined;
+
+  return {
+    data,
+    updatedAt: Date.now(),
+    params: {
+      watchRegion: prefs.watchRegion,
+      languagesParam,
+      page,
+    },
+  };
+}
 
 function InTheatersFallback() {
   return (
@@ -25,10 +95,18 @@ function InTheatersFallback() {
   );
 }
 
-export default function InTheatersPage() {
+export default async function InTheatersPage({ searchParams }: PageProps) {
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const initialData = await getInitialData(resolvedSearchParams);
+
   return (
-    <Suspense fallback={<InTheatersFallback />}>
-      <InTheatersPageContent />
-    </Suspense>
+    <>
+      {initialData && initialData.data.results.length > 0 ? (
+        <JsonLd data={theaterItemList(initialData.data.results)} />
+      ) : null}
+      <Suspense fallback={<InTheatersFallback />}>
+        <InTheatersPageContent initialData={initialData} />
+      </Suspense>
+    </>
   );
 }

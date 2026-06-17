@@ -97,13 +97,21 @@ function readStored(): Stored | null {
   }
 }
 
-export function RegionLanguageProvider({ children }: { children: ReactNode }) {
+export function RegionLanguageProvider({
+  children,
+  initialWatchRegion = DEFAULTS.watchRegion,
+  initialLanguages = DEFAULTS.languages,
+}: {
+  children: ReactNode;
+  initialWatchRegion?: WatchRegionCode;
+  initialLanguages?: ContentLanguageCode[];
+}) {
   const router = useRouter();
   const [watchRegion, setWatchRegionState] = useState<WatchRegionCode>(
-    DEFAULTS.watchRegion
+    initialWatchRegion
   );
   const [languages, setLanguagesState] = useState<ContentLanguageCode[]>(
-    DEFAULTS.languages
+    initialLanguages
   );
   const [hydrated, setHydrated] = useState(false);
   const skipRefreshAfterFirstPersist = useRef(true);

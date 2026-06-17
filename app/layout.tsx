@@ -1,6 +1,15 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { Inter_Tight, Anton, Geist } from "next/font/google";
+import GoogleAnalytics from "@/components/GoogleAnalytics";
+import {
+  DEFAULT_DESCRIPTION,
+  DEFAULT_OG_IMAGE,
+  DEFAULT_TITLE,
+  DEFAULT_TWITTER_IMAGE,
+  SITE_NAME,
+  SITE_URL,
+} from "@/lib/seo";
 import { cn } from "@/lib/utils";
 import "./globals.css";
 
@@ -24,33 +33,41 @@ const anton = Anton({
 });
 
 export const metadata: Metadata = {
-  title: "NextWatch",
-  description: "Watchlist for movies and TV shows",
+  metadataBase: new URL(SITE_URL),
+  applicationName: SITE_NAME,
+  title: {
+    default: DEFAULT_TITLE,
+    template: `%s | ${SITE_NAME}`,
+  },
+  description: DEFAULT_DESCRIPTION,
   icons: {
     icon: "/favicon.ico",
   },
-  // manifest: "/manifest.json",
-  // themeColor: "#000000",
-  // viewport: {
-  //   width: "device-width",
-  //   initialScale: 1,
-  //   maximumScale: 1,
-  //   userScalable: false,
-  // },
-  // openGraph: {
-  //   title: "NextWatch",
-  //   description: "Watchlist for movies and TV shows",
-  //   url: "https://nextwatchlist.com/",
-  //   siteName: "NextWatchList",
-  //   images: [
-  //     {
-  //       url: "/og-image.png",
-  //       width: 1200,
-  //       height: 630,
-  //       alt: "NextWatchList",
-  //     },
-  //   ],
-  // },
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: DEFAULT_TITLE,
+    description: DEFAULT_DESCRIPTION,
+    url: "/",
+    siteName: SITE_NAME,
+    type: "website",
+    locale: "en_US",
+    images: [
+      {
+        url: DEFAULT_OG_IMAGE,
+        width: 1200,
+        height: 630,
+        alt: SITE_NAME,
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: DEFAULT_TITLE,
+    description: DEFAULT_DESCRIPTION,
+    images: [DEFAULT_TWITTER_IMAGE],
+  },
 };
 
 export default function RootLayout({
@@ -68,6 +85,7 @@ export default function RootLayout({
         suppressHydrationWarning={true}
         className={`${interTight.variable} ${anton.variable} ${gilroy.variable} antialiased`}
       >
+        <GoogleAnalytics />
         {children}
       </body>
     </html>

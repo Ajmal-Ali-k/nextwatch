@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
+import { createNoIndexMetadata } from "@/lib/seo";
 import SearchPageContent from "./SearchPageContent";
 
 function SearchFallback() {
@@ -34,12 +35,17 @@ export async function generateMetadata({ searchParams }: SearchPageProps): Promi
   const p = await searchParams;
   const q = (p.q ?? p.query ?? "").trim();
   if (q.length < 2) {
-    return { title: "Search | NextWatchList" };
+    return createNoIndexMetadata({
+      title: "Search",
+      description: "Search movies and TV shows on NextWatchList.",
+      path: "/search",
+    });
   }
-  return {
-    title: `Search: ${q} | NextWatchList`,
-    description: `Search results for “${q}” on NextWatchList.`,
-  };
+  return createNoIndexMetadata({
+    title: `Search: ${q}`,
+    description: `Search results for "${q}" on NextWatchList.`,
+    path: "/search",
+  });
 }
 
 export default function SearchPage() {
