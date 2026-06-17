@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { Inter_Tight, Anton, Geist } from "next/font/google";
+import GoogleAnalytics from "@/components/GoogleAnalytics";
 import {
   DEFAULT_DESCRIPTION,
   DEFAULT_OG_IMAGE,
@@ -84,6 +85,7 @@ export default function RootLayout({
         suppressHydrationWarning={true}
         className={`${interTight.variable} ${anton.variable} ${gilroy.variable} antialiased`}
       >
+        <GoogleAnalytics />
         {children}
       </body>
     </html>
