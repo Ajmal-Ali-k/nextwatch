@@ -26,7 +26,10 @@ import { cn } from "@/lib/utils";
 import { HeroSlideCard } from "./HeroSlideCard";
 import { HeroTmdbSearchPanel } from "./HeroTmdbSearchPanel";
 import { HeroUploadForm } from "./HeroUploadForm";
-import type { HeroSlideItem } from "@/lib/db/heroSection";
+import {
+  addHeroSlideItemToTop,
+  type HeroSlideItem,
+} from "@/lib/db/heroSection";
 
 type AddTab = "search" | "upload";
 
@@ -66,14 +69,7 @@ export function HeroBannerEditor({
 
   const handleAdd = useCallback(
     (item: Omit<HeroSlideItem, "addedAt" | "order">) => {
-      setItems((prev) => [
-        ...prev,
-        {
-          ...item,
-          addedAt: new Date().toISOString(),
-          order: prev.length,
-        },
-      ]);
+      setItems((prev) => addHeroSlideItemToTop(prev, item));
       toast.success(`Added "${item.title}"`);
     },
     []
