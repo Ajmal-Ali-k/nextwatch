@@ -15,3 +15,18 @@ export type HeroSlideItem = {
   addedAt: string;
   order: number;
 };
+
+export function addHeroSlideItemToTop(
+  items: HeroSlideItem[],
+  item: Omit<HeroSlideItem, "addedAt" | "order">,
+  addedAt = new Date().toISOString()
+): HeroSlideItem[] {
+  return [
+    {
+      ...item,
+      addedAt,
+      order: 0,
+    },
+    ...items,
+  ];
+}
